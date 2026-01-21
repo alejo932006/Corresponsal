@@ -140,8 +140,7 @@ app.post('/api/transacciones', async (req, res) => {
 app.get('/api/mis-movimientos', async (req, res) => {
     const { usuario } = req.query; 
     try {
-        // 1. Buscamos a qué hora se abrió la caja ACTUAL (o la última que se cerró hoy)
-        // Esto define el "Inicio de mi Turno"
+        // 1. Buscamos a qué hora empezó el turno ACTUAL (o el último que cerró)
         const queryTurno = `
             SELECT hora_apertura FROM aperturas_caja ac
             JOIN usuarios u ON ac.usuario_id = u.id
@@ -150,14 +149,14 @@ app.get('/api/mis-movimientos', async (req, res) => {
         `;
         const resTurno = await pool.query(queryTurno, [usuario]);
         
-        // Si no ha abierto caja nunca hoy, no mostramos nada
+        // Si no ha abierto nunca hoy, lista vacía
         if (resTurno.rows.length === 0) {
             return res.json({ success: true, movimientos: [] });
         }
 
         const horaInicioTurno = resTurno.rows[0].hora_apertura;
 
-        // 2. Filtramos transacciones POSTERIORES a esa hora
+        // 2. Traemos solo las transacciones hechas DESPUÉS de esa hora
         const query = `
             SELECT 
                 t.id,
@@ -169,7 +168,7 @@ app.get('/api/mis-movimientos', async (req, res) => {
             JOIN tipos_transaccion tp ON t.tipo_id = tp.id
             JOIN usuarios u ON t.usuario_id = u.id
             WHERE u.nombre = $1 
-              AND t.fecha_hora >= $2  -- <--- EL FILTRO MÁGICO
+              AND t.fecha_hora >= $2  -- <--- ESTO LIMPIA LA LISTA EN EL NUEVO TURNO
             ORDER BY t.id DESC
         `;
         
@@ -190,17 +189,17 @@ app.post('/api/apertura-caja', async (req, res) => {
         const userRes = await pool.query('SELECT id FROM usuarios WHERE nombre = $1', [usuario_nombre]);
         const userId = userRes.rows[0].id;
 
-        // 1. Validar que no tenga una caja ABIERTA ya (para no abrir dos veces)
+        // 1. Verificamos si YA hay una caja ABIERTA (para no dejar abrir dos a la vez)
         const checkAbierta = await pool.query(`
             SELECT id FROM aperturas_caja 
             WHERE usuario_id = $1 AND estado = 'ABIERTA'
         `, [userId]);
 
         if (checkAbierta.rows.length > 0) {
-            return res.status(400).json({ success: false, message: 'Ya tienes una caja abierta.' });
+            return res.status(400).json({ success: false, message: 'Ya tienes una caja abierta. Ciérrala primero.' });
         }
 
-        // 2. Insertar Nueva Apertura (Nueva sesión)
+        // 2. Insertamos el NUEVO turno (Sin ON CONFLICT)
         const query = `
             INSERT INTO aperturas_caja (usuario_id, fecha, monto_inicial, estado)
             VALUES ($1, CURRENT_DATE, $2, 'ABIERTA');
@@ -297,12 +296,12 @@ app.post('/api/reabrir-caja', async (req, res) => {
 app.get('/api/estado-caja', async (req, res) => {
     const { usuario } = req.query;
     try {
-        // Buscamos si existe registro de hoy
+        // Agregamos ORDER BY id DESC para obtener siempre el último estado
         const query = `
             SELECT ac.* FROM aperturas_caja ac
             JOIN usuarios u ON ac.usuario_id = u.id
             WHERE u.nombre = $1 AND ac.fecha = CURRENT_DATE
-            ORDER BY ac.id DESC LIMIT 1
+            ORDER BY ac.id DESC LIMIT 1 
         `;
         const resultado = await pool.query(query, [usuario]);
 
@@ -312,16 +311,17 @@ app.get('/api/estado-caja', async (req, res) => {
 
         const datos = resultado.rows[0];
         
-        // Si está abierta, calculamos el saldo actual en tiempo real para mostrarlo
+        // Calcular saldo del turno actual
         if (datos.estado === 'ABIERTA') {
              const queryMovs = `
                 SELECT SUM(t.monto * tp.afecta_caja) as total
                 FROM transacciones t
                 JOIN tipos_transaccion tp ON t.tipo_id = tp.id
                 JOIN usuarios u ON t.usuario_id = u.id
-                WHERE u.nombre = $1 AND DATE(t.fecha_hora) = CURRENT_DATE
+                WHERE u.nombre = $1 
+                  AND t.fecha_hora >= $2 -- Solo sumar movimientos de ESTE turno
             `;
-            const resMovs = await pool.query(queryMovs, [usuario]);
+            const resMovs = await pool.query(queryMovs, [usuario, datos.hora_apertura]);
             const movimientos = parseFloat(resMovs.rows[0].total) || 0;
             datos.saldo_actual_calculado = parseFloat(datos.monto_inicial) + movimientos;
         }
