@@ -486,6 +486,7 @@ app.get('/api/reporte-cierre', async (req, res) => {
     }
 });
 
+
 // Iniciar servidor
 const PORT = 3000;
 app.listen(PORT, '0.0.0.0', () => {
