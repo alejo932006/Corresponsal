@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Caja</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/transaccion.css">
+    <style>
+        /* Estilos específicos para esta página */
+        .caja-container { max-width: 600px; margin: 0 auto; text-align: center; padding-top: 50px; }
+        .state-card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); display: none; }
+        
+        .big-icon { font-size: 4rem; margin-bottom: 20px; display: block; }
+        .input-money { font-size: 2rem; text-align: center; color: #2c3e50; border: 2px solid #dfe6e9; width: 80%; margin: 20px auto; display: block; padding: 10px; border-radius: 10px;}
+        
+        .summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #eee; }
+        .summary-val { font-weight: bold; }
+        .diferencia-positiva { color: green; }
+        .diferencia-negativa { color: red; }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="brand"><h3>Mi Banco Local</h3></div>
+        <div class="user-profile"><p>Hola, <span id="nombreUsuario">...</span></p></div>
+        <ul>
+            <li><a href="dashboard.html">📊 Resumen</a></li>
+            <li><a href="transaccion.html">💰 Nueva Transacción</a></li>
+            <li><a href="caja.html" class="active">🔐 Control de Caja</a></li> <li><a href="#" id="btnLogout" class="danger">Cerrar Sesión</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <div class="caja-container">
+            
+            <div id="viewApertura" class="state-card">
+                <span class="big-icon">🌅</span>
+                <h2>Apertura de Caja</h2>
+                <p>Buenos días. Ingresa la base en efectivo para iniciar operaciones.</p>
+                <input type="number" id="inputBaseInicial" class="input-money" placeholder="$ 0">
+                <button onclick="realizarApertura()" class="btn-save" style="width:80%">Abrir Turno</button>
+            </div>
+
+            <div id="viewCierre" class="state-card">
+                <span class="big-icon">🔓</span>
+                <h2>Tu caja está Abierta</h2>
+                <p>El sistema está registrando operaciones.</p>
+                
+                <div style="background:#f8f9fa; padding:20px; border-radius:10px; margin:20px 0;">
+                    <small>Saldo esperado por Sistema:</small>
+                    <h1 id="txtSaldoSistema" style="margin:5px 0; color:#2c3e50;">Cargando...</h1>
+                </div>
+
+                <hr style="border:0; border-top:1px solid #eee; margin:30px 0;">
+
+                <h3>🏁 Realizar Cierre del Día</h3>
+                <p>Cuenta los billetes físicos e ingresa el total real:</p>
+                <input type="number" id="inputCierreFisico" class="input-money" placeholder="$ Total contado">
+                
+                <button onclick="realizarCierre()" class="btn-save" style="background-color:#e74c3c; width:80%">Cerrar Caja</button>
+            </div>
+
+            <div id="viewResumen" class="state-card">
+                <span class="big-icon">✅</span>
+                <h2>Turno Cerrado</h2>
+                <p>Resumen final del día:</p>
+                
+                <div style="text-align:left; margin: 20px 40px;">
+                    <div class="summary-row"><span>Base Inicial:</span> <span class="summary-val" id="resInicial">$0</span></div>
+                    <div class="summary-row"><span>Saldo Sistema:</span> <span class="summary-val" id="resSistema">$0</span></div>
+                    <div class="summary-row" style="background:#f0fff4;"><span>Dinero Contado:</span> <span class="summary-val" id="resReal">$0</span></div>
+                    <div class="summary-row"><span>Diferencia:</span> <span class="summary-val" id="resDiferencia">$0</span></div>
+                </div>
+
+                <button onclick="window.location.href='dashboard.html'" class="btn-cancel">Volver al Dashboard</button>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="js/caja.js"></script>
+</body>
+</html>

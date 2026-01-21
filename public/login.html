@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Seguro | Surtitodo Ideal</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="brand-section">
+        <h1>Surtitodo - Ideal</h1>
+        <p>Sistema Integral de Tesorería y Corresponsalía Bancaria.</p>
+    </div>
+
+    <div class="login-section">
+        <div class="login-container">
+            <div class="login-header">
+                <h2>Bienvenido</h2>
+                <p>Ingresa tus credenciales para acceder al sistema.</p>
+            </div>
+            
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="usuario">Usuario</label>
+                    <input type="text" id="usuario" name="usuario" placeholder="Ej. alejandro" required autocomplete="username">
+                </div>
+
+                <div class="input-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+
+                <button type="submit" class="btn-ingresar">Iniciar Sesión</button>
+            </form>
+            
+            <div id="mensajeError" class="error-msg" style="display: none;">
+                Usuario o contraseña incorrectos
+            </div>
+            
+            <p style="text-align: center; margin-top: 20px; color: #aaa; font-size: 0.8rem;">
+                &copy; 2026  Technology
+            </p>
+        </div>
+    </div>
+
+    <script src="js/login.js"></script>
+</body>
+</html>

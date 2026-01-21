@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva Transacción</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/transaccion.css"> </head>
+<body>
+
+    <nav class="sidebar">
+        <div class="brand"><h3>Mi Banco Local</h3></div>
+        <div class="user-profile"><p>Hola, <span id="nombreUsuario">...</span></p></div>
+        <ul>
+            <li><a href="dashboard.html">📊 Resumen</a></li>
+            <li><a href="transaccion.html" class="active">💰 Nueva Transacción</a></li>
+            <li><a href="#">📝 Reportes</a></li>
+            <li><a href="caja.html">🔐 Control de Caja</a></li>
+            <li><a href="#" id="btnLogout" class="danger">Cerrar Sesión</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <div class="split-layout">
+            
+            <div class="form-section">
+                <div class="form-card">
+                    <header>
+                        <h2>Nueva Operación</h2>
+                    </header>
+                    <form id="formTransaccion" novalidate>
+                        <div class="form-group">
+                            <label>¿Qué deseas realizar?</label>
+                            <div class="category-selector">
+                                <label class="radio-card">
+                                    <input type="radio" name="categoria" value="RECAUDO" required>
+                                    <div class="card-content">
+                                        <span class="icon">📥</span>
+                                        <span>Recaudos</span>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="categoria" value="TESORERIA" required>
+                                    <div class="card-content">
+                                        <span class="icon">📤</span>
+                                        <span>Tesorería</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="groupTipo" style="display:none;">
+                            <label>Tipo Específico</label>
+                            <select id="selectTipo" required></select>
+                        </div>
+
+                        <div class="form-group">
+                             <label>Banco</label>
+                             <select id="selectBanco" required></select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Monto</label>
+                            <input type="number" id="inputMonto" class="input-big" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Descripción</label>
+                            <input type="text" id="inputDesc" required>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-save">Registrar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="history-section">
+                
+                <div class="cash-base-widget" id="widgetBase">
+                    <div class="base-header">
+                        <span>💵 Efectivo en Caja</span>
+                        <button onclick="ajustarBase()" class="btn-adjust" title="Corregir Descuadre">⚙️</button>
+                    </div>
+                    <div class="base-amount">
+                        <h2 id="txtBaseActual">$ ...</h2>
+                        <small id="txtBaseInicial">Base Inicial: $ 0</small>
+                    </div>
+                    <div id="btnAbrirCajaContainer" style="display:none; margin-top:10px;">
+                        <button onclick="abrirCaja()" class="btn-open-cash">🔓 Ingresar Base Inicial</button>
+                    </div>
+                </div>
+
+                <div class="history-card" style="margin-top: 20px; height: 65vh;"> 
+                    <header class="history-header">
+                        <div class="header-text">
+                            <h3>📒 Mi Turno</h3>
+                            <small id="fechaHoySmall">Hoy</small>
+                        </div>
+                        <div class="total-badge">
+                            <small>Movimientos</small>
+                            <span id="contadorMovimientos">0</span>
+                        </div>
+                    </header>
+                    
+                    <div class="transaction-feed" id="listaMovimientos">
+                        <div class="empty-state">
+                            <p>No hay movimientos aún</p>
+                        </div>
+                    </div>
+
+                    <footer class="history-footer">
+                        <span>Total Operado:</span>
+                        <strong id="totalTurno">$ 0</strong>
+                    </footer>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="js/transaccion.js"></script>
+</body>
+</html>

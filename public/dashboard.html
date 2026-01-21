@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Principal - Corresponsal</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="brand">
+            <h3>Corresponsal Bancolombia</h3>
+        </div>
+        <div class="user-profile">
+            <p>Hola, <span id="nombreUsuario">Usuario</span></p>
+        </div>
+        <ul>
+            <li><a href="#" class="active">📊 Resumen</a></li>
+            <li><a href="transaccion.html">💰 Nueva Transacción</a></li>
+            <li><a href="#">📝 Reportes</a></li>
+            <li><a href="caja.html">🔐 Control de Caja</a></li>
+            <li><a href="#" id="btnLogout" class="danger">Cerrar Sesión</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <h1>Panel de Control</h1>
+            <p class="date" id="fechaHoy">Fecha</p>
+        </header>
+
+        <section class="cards-container">
+            <div class="card card-blue">
+                <h3>Saldo en Caja (Físico)</h3>
+                <p class="amount" id="saldoCaja">$ 0.00</p>
+                <small>Dinero disponible en el cajón</small>
+            </div>
+
+            <div class="card card-green">
+                <h3>Cupo Banco (Digital)</h3>
+                <p class="amount" id="saldoBanco">$ 0.00</p>
+                <small>Saldo en la plataforma bancaria</small>
+            </div>
+
+            <div class="card card-red">
+                <h3>Deuda Interna (Empresa)</h3>
+                <p class="amount" id="deudaEmpresa">$ 0.00</p>
+                <small>Pagos a proveedores pendientes</small>
+            </div>
+        </section>
+
+        <section class="recent-transactions">
+            <h2>Últimos Movimientos</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Hora</th>
+                        <th>Tipo</th>
+                        <th>Descripción</th>
+                        <th>Monto</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaMovimientos">
+                    <tr>
+                        <td colspan="4" style="text-align:center">Cargando datos...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

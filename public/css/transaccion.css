@@ -1,0 +1,369 @@
+/* Centrar el formulario en la pantalla */
+.center-content {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Alineado arriba con un poco de margen */
+    padding-top: 50px;
+}
+
+.form-card {
+    background: white;
+    width: 100%;
+    max-width: 500px; /* No muy ancho para que sea fácil de leer */
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+}
+
+.form-card h2 { margin-top: 0; color: #2c3e50; }
+.form-card p { color: #7f8c8d; margin-bottom: 30px; }
+
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: #34495e; }
+
+/* Estilos de Inputs y Selects */
+select, input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #dfe6e9;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit;
+    background-color: #fdfdfd;
+}
+
+select:focus, input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* El input de dinero más grande y notorio */
+.input-big {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #27ae60; /* Verde dinero */
+    letter-spacing: 1px;
+}
+
+/* Botones */
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.btn-save {
+    flex: 2;
+    background-color: #2c3e50;
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.2s;
+}
+.btn-save:hover { background-color: #1a252f; }
+
+.btn-cancel {
+    flex: 1;
+    background-color: white;
+    border: 1px solid #dfe6e9;
+    color: #7f8c8d;
+    padding: 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+.btn-cancel:hover { background-color: #f4f7f6; }
+
+/* Estilos para el selector de categoría tipo Tarjeta */
+.category-selector {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.radio-card {
+    flex: 1;
+    cursor: pointer;
+    position: relative;
+}
+
+.radio-card input {
+    opacity: 0;
+    position: absolute;
+    width: 0;
+    height: 0;
+    margin: 0;
+}
+
+.radio-card .card-content {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    transition: all 0.3s;
+    background: #fafafa;
+}
+
+.radio-card .card-content .icon {
+    display: block;
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+.radio-card small {
+    display: block;
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 5px;
+}
+
+/* Efecto cuando está seleccionado */
+.radio-card input:checked + .card-content {
+    border-color: #3498db;
+    background-color: #ebf5fb;
+    color: #2980b9;
+    box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2);
+}
+
+.radio-card:hover .card-content {
+    border-color: #bdc3c7;
+}
+
+/* Layout Principal */
+.split-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start; /* Alineados arriba */
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.form-section {
+    flex: 3; /* El formulario ocupa el 60% */
+}
+
+.history-section {
+    flex: 2; /* El historial ocupa el 40% */
+}
+
+/* Ajustes a la tarjeta de historial */
+.history-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    height: fit-content;
+    max-height: 80vh; /* Que no se estire más allá de la pantalla */
+    display: flex;
+    flex-direction: column;
+}
+
+.history-card header {
+    border-bottom: 2px solid #f4f7f6;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.history-card h3 { margin: 0; color: #2c3e50; }
+
+/* Tabla compacta para el historial */
+.table-container {
+    overflow-y: auto; /* Scroll si hay muchas operaciones */
+}
+
+.history-section table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.history-section th {
+    text-align: left;
+    color: #95a5a6;
+    padding: 8px;
+    font-weight: 500;
+}
+
+.history-section td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #ecf0f1;
+    color: #34495e;
+}
+
+.history-section td.monto {
+    font-weight: bold;
+    color: #27ae60;
+}
+
+/* En móviles, que se ponga uno debajo del otro */
+@media (max-width: 900px) {
+    .split-layout { flex-direction: column; }
+    .form-section, .history-section { width: 100%; }
+}
+
+/* --- ESTILO MODERNO PARA EL HISTORIAL --- */
+
+.history-card {
+    background: #ffffff;
+    border-radius: 16px; /* Bordes más redondeados */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05); /* Sombra suave y difusa */
+    height: 85vh; /* Altura fija para que el scroll funcione dentro */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Para que nada se salga de los bordes redondeados */
+    border: 1px solid #f0f0f0;
+}
+
+/* Cabecera */
+.history-header {
+    padding: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fff;
+}
+
+.header-text h3 { margin: 0; font-size: 1.1rem; color: #2c3e50; }
+.header-text small { color: #95a5a6; font-size: 0.8rem; }
+
+.total-badge {
+    text-align: right;
+    background: #f4f7f6;
+    padding: 5px 12px;
+    border-radius: 20px;
+}
+.total-badge span { font-weight: bold; color: #2c3e50; }
+
+/* Contenedor de la lista (El Feed) */
+.transaction-feed {
+    flex: 1; /* Ocupa todo el espacio disponible */
+    overflow-y: auto; /* Scroll vertical */
+    padding: 15px;
+    background-color: #fafbfc; /* Fondo gris muy tenue */
+}
+
+/* Tarjeta individual de movimiento */
+.feed-item {
+    background: white;
+    padding: 15px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    border: 1px solid #edf2f7;
+    transition: transform 0.2s;
+}
+
+.feed-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    border-color: #cbd5e0;
+}
+
+/* Icono o Hora a la izquierda */
+.feed-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.feed-time {
+    font-size: 0.75rem;
+    color: #a0aec0;
+    font-weight: 600;
+    min-width: 45px;
+}
+
+.feed-info h4 { margin: 0; font-size: 0.95rem; color: #2d3748; font-weight: 600; }
+.feed-info p { margin: 2px 0 0 0; font-size: 0.8rem; color: #718096; }
+
+/* Monto a la derecha */
+.feed-amount {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2d3748;
+}
+
+/* Colores según contexto (opcional, se puede controlar con JS) */
+.amount-highlight { color: #38a169; } /* Verde para ingresos importantes */
+
+/* Pie de página fijo */
+.history-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #f0f0f0;
+    background: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #4a5568;
+}
+.history-footer strong { font-size: 1.1rem; color: #2c3e50; }
+
+/* Scrollbar Bonito (Webkit) */
+.transaction-feed::-webkit-scrollbar { width: 6px; }
+.transaction-feed::-webkit-scrollbar-track { background: transparent; }
+.transaction-feed::-webkit-scrollbar-thumb { background-color: #cbd5e0; border-radius: 10px; }
+
+/* Widget de Base de Efectivo */
+.cash-base-widget {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(44, 62, 80, 0.3);
+    margin-bottom: 20px;
+}
+
+.base-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.btn-adjust {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.btn-adjust:hover { background: rgba(255,255,255,0.4); }
+
+.base-amount h2 {
+    margin: 0;
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+.base-amount small {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.8rem;
+    color: #bdc3c7;
+}
+
+.btn-open-cash {
+    width: 100%;
+    padding: 10px;
+    background: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.btn-open-cash:hover { background: #2ecc71; }
