@@ -28,7 +28,8 @@
         <ul>
             <li><a href="dashboard.html">📊 Resumen</a></li>
             <li><a href="transaccion.html">💰 Nueva Transacción</a></li>
-            <li><a href="caja.html" class="active">🔐 Control de Caja</a></li> <li><a href="#" id="btnLogout" class="danger">Cerrar Sesión</a></li>
+            <li><a href="caja.html" class="active">🔐 Control de Caja</a></li>
+            <li><a href="#" id="btnLogout" class="danger">Cerrar Sesión</a></li>
         </ul>
     </nav>
 
@@ -74,11 +75,73 @@
                     <div class="summary-row"><span>Diferencia:</span> <span class="summary-val" id="resDiferencia">$0</span></div>
                 </div>
 
-                <button onclick="window.location.href='dashboard.html'" class="btn-cancel">Volver al Dashboard</button>
+                <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+                    
+                    <button onclick="imprimirReporte()" class="btn-save" style="background-color: #2c3e50; width: 100%;">
+                        🖨️ Imprimir Cierre General
+                    </button>
+
+                    <button onclick="window.location.href='dashboard.html'" class="btn-cancel" style="width: 100%;">
+                        Volver al Dashboard
+                    </button>
+                </div>
+
+                <div style="margin-top: 30px; border-top: 1px dashed #ddd; padding-top: 20px;">
+                    <small style="color: #7f8c8d; display: block; margin-bottom: 10px;">¿Cerraste por equivocación?</small>
+                    <button onclick="reabrirCaja()" style="background: none; border: 1px solid #f39c12; color: #f39c12; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+                        🔓 Reabrir Turno
+                    </button>
+                </div>
             </div>
 
         </div>
     </main>
+
+    <div id="ticketImpresion" class="ticket-oculto">
+        <div class="ticket-header">
+            <h3>CORRESPONSAL BANCARIO</h3>
+            <p>T-Shop Technology</p>
+            <p>NIT: 123456789-0</p>
+            <hr class="dashed">
+            <h4>CIERRE DE CAJA</h4>
+            <p><strong>Fecha:</strong> <span id="printFecha"></span></p>
+            <p><strong>Cajero:</strong> <span id="printCajero"></span></p>
+        </div>
+
+        <hr class="dashed">
+        
+        <div class="ticket-section">
+            <h4>RESUMEN POR CONCEPTO</h4>
+            <table class="ticket-table">
+                <tbody id="printTablaResumen">
+                    </tbody>
+            </table>
+        </div>
+
+        <hr class="dashed">
+
+        <div class="ticket-section">
+            <h4>DETALLE MOVIMIENTOS</h4>
+            <table class="ticket-table-detail">
+                <thead>
+                    <tr>
+                        <th>Hora</th>
+                        <th>Desc.</th>
+                        <th style="text-align:right">Valor</th>
+                    </tr>
+                </thead>
+                <tbody id="printTablaDetalle">
+                    </tbody>
+            </table>
+        </div>
+
+        <hr class="dashed">
+        <div class="ticket-footer">
+            <p>Total en Sistema: <span id="printTotalFinal"></span></p>
+            <br>
+            <p>*** FIN DEL REPORTE ***</p>
+        </div>
+    </div>
 
     <script src="js/caja.js"></script>
 </body>

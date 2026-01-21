@@ -367,3 +367,64 @@ select:focus, input:focus {
     cursor: pointer;
 }
 .btn-open-cash:hover { background: #2ecc71; }
+
+/* --- ESTILOS DE LA TIRILLA (Oculto en pantalla normal) --- */
+.ticket-oculto {
+    display: none; /* Invisible normalmente */
+}
+
+/* --- CONFIGURACIÓN DE IMPRESIÓN --- */
+@media print {
+    /* 1. Ocultar TODO lo de la web */
+    body * {
+        visibility: hidden;
+    }
+    
+    /* 2. Configurar la página de impresión */
+    @page {
+        margin: 0;
+        size: auto;
+    }
+
+    /* 3. Hacer visible SOLO el ticket y posicionarlo */
+    #ticketImpresion, #ticketImpresion * {
+        visibility: visible;
+    }
+
+    #ticketImpresion {
+        display: block;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 80mm; /* Ancho estándar de impresora térmica */
+        padding: 5mm;
+        font-family: 'Courier New', Courier, monospace; /* Fuente tipo ticket */
+        font-size: 12px;
+        color: black;
+        background: white;
+    }
+
+    /* Estilos internos del ticket */
+    .ticket-header { text-align: center; margin-bottom: 10px; }
+    .ticket-header h3 { margin: 5px 0; font-size: 16px; }
+    .ticket-header p { margin: 2px 0; font-size: 11px; }
+    
+    .dashed { border-top: 1px dashed #000; margin: 10px 0; border-bottom: none; }
+    
+    .ticket-section h4 { 
+        margin: 5px 0; 
+        font-size: 12px; 
+        text-transform: uppercase; 
+        text-align: center;
+    }
+
+    /* Tablas del ticket */
+    .ticket-table, .ticket-table-detail { width: 100%; border-collapse: collapse; }
+    .ticket-table td { padding: 2px 0; }
+    .ticket-table .col-val { text-align: right; font-weight: bold; }
+    
+    .ticket-table-detail th { border-bottom: 1px solid #000; font-size: 10px; text-align: left;}
+    .ticket-table-detail td { font-size: 10px; padding-top: 4px; vertical-align: top; }
+    
+    .ticket-footer { text-align: center; margin-top: 20px; font-weight: bold; }
+}

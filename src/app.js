@@ -135,13 +135,29 @@ app.post('/api/transacciones', async (req, res) => {
     }
 });
 
-// --- RUTA: HISTORIAL PERSONAL DEL DÍA ---
-app.get('/api/mis-movimientos', async (req, res) => {
-    // Asumimos que envías el nombre de usuario por query param o header
-    // En un sistema real usaríamos tokens, pero usaremos el query por simplicidad
-    const { usuario } = req.query; 
+// src/app.js
 
+app.get('/api/mis-movimientos', async (req, res) => {
+    const { usuario } = req.query; 
     try {
+        // 1. Buscamos a qué hora se abrió la caja ACTUAL (o la última que se cerró hoy)
+        // Esto define el "Inicio de mi Turno"
+        const queryTurno = `
+            SELECT hora_apertura FROM aperturas_caja ac
+            JOIN usuarios u ON ac.usuario_id = u.id
+            WHERE u.nombre = $1 AND ac.fecha = CURRENT_DATE
+            ORDER BY ac.id DESC LIMIT 1
+        `;
+        const resTurno = await pool.query(queryTurno, [usuario]);
+        
+        // Si no ha abierto caja nunca hoy, no mostramos nada
+        if (resTurno.rows.length === 0) {
+            return res.json({ success: true, movimientos: [] });
+        }
+
+        const horaInicioTurno = resTurno.rows[0].hora_apertura;
+
+        // 2. Filtramos transacciones POSTERIORES a esa hora
         const query = `
             SELECT 
                 t.id,
@@ -153,11 +169,11 @@ app.get('/api/mis-movimientos', async (req, res) => {
             JOIN tipos_transaccion tp ON t.tipo_id = tp.id
             JOIN usuarios u ON t.usuario_id = u.id
             WHERE u.nombre = $1 
-              AND DATE(t.fecha_hora) = CURRENT_DATE -- Solo lo de HOY
-            ORDER BY t.id DESC -- Lo más reciente arriba
+              AND t.fecha_hora >= $2  -- <--- EL FILTRO MÁGICO
+            ORDER BY t.id DESC
         `;
         
-        const resultado = await pool.query(query, [usuario]);
+        const resultado = await pool.query(query, [usuario, horaInicioTurno]);
         res.json({ success: true, movimientos: resultado.rows });
 
     } catch (error) {
@@ -166,23 +182,32 @@ app.get('/api/mis-movimientos', async (req, res) => {
     }
 });
 
-// --- RUTA: ESTABLECER LA BASE INICIAL (APERTURA) ---
+// src/app.js
+
 app.post('/api/apertura-caja', async (req, res) => {
     const { usuario_nombre, monto } = req.body;
     try {
-        // Buscamos ID usuario
         const userRes = await pool.query('SELECT id FROM usuarios WHERE nombre = $1', [usuario_nombre]);
         const userId = userRes.rows[0].id;
 
-        // Insertamos (ON CONFLICT hace que si ya existe hoy, actualice el monto)
+        // 1. Validar que no tenga una caja ABIERTA ya (para no abrir dos veces)
+        const checkAbierta = await pool.query(`
+            SELECT id FROM aperturas_caja 
+            WHERE usuario_id = $1 AND estado = 'ABIERTA'
+        `, [userId]);
+
+        if (checkAbierta.rows.length > 0) {
+            return res.status(400).json({ success: false, message: 'Ya tienes una caja abierta.' });
+        }
+
+        // 2. Insertar Nueva Apertura (Nueva sesión)
         const query = `
-            INSERT INTO aperturas_caja (usuario_id, fecha, monto_inicial)
-            VALUES ($1, CURRENT_DATE, $2)
-            ON CONFLICT (usuario_id, fecha) 
-            DO UPDATE SET monto_inicial = $2;
+            INSERT INTO aperturas_caja (usuario_id, fecha, monto_inicial, estado)
+            VALUES ($1, CURRENT_DATE, $2, 'ABIERTA');
         `;
         await pool.query(query, [userId, monto]);
         res.json({ success: true });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Error al abrir caja' });
@@ -193,18 +218,23 @@ app.post('/api/apertura-caja', async (req, res) => {
 app.get('/api/base-caja', async (req, res) => {
     const { usuario } = req.query;
     try {
-        // 1. Obtener Monto Inicial
+        // 1. Modificamos la consulta para pedir también el ESTADO
         const queryInicial = `
-            SELECT monto_inicial FROM aperturas_caja ac
+            SELECT monto_inicial, estado FROM aperturas_caja ac
             JOIN usuarios u ON ac.usuario_id = u.id
             WHERE u.nombre = $1 AND ac.fecha = CURRENT_DATE
+            ORDER BY ac.id DESC LIMIT 1
         `;
         const resInicial = await pool.query(queryInicial, [usuario]);
+        
         const baseInicial = resInicial.rows.length > 0 ? parseFloat(resInicial.rows[0].monto_inicial) : 0;
-        const cajaAbierta = resInicial.rows.length > 0; // ¿Ya abrió caja hoy?
+        
+        // --- AQUÍ ESTABA EL DETALLE ---
+        // Antes: const cajaAbierta = resInicial.rows.length > 0;
+        // Ahora: Verificamos que exista Y que el estado sea explícitamente 'ABIERTA'
+        const cajaAbierta = resInicial.rows.length > 0 && resInicial.rows[0].estado === 'ABIERTA';
 
-        // 2. Sumar movimientos del día que afectan caja (afecta_caja != 0)
-        // NOTA: Aquí los pagos a proveedores se ignoran automáticamente porque su afecta_caja es 0
+        // 2. Sumar movimientos (El resto del código sigue igual)
         const queryMovimientos = `
             SELECT SUM(t.monto * tp.afecta_caja) as total_movimientos
             FROM transacciones t
@@ -215,7 +245,6 @@ app.get('/api/base-caja', async (req, res) => {
         const resMov = await pool.query(queryMovimientos, [usuario]);
         const movimientos = parseFloat(resMov.rows[0].total_movimientos) || 0;
 
-        // 3. Total Final
         const totalEnCaja = baseInicial + movimientos;
 
         res.json({ success: true, base: totalEnCaja, baseInicial, cajaAbierta });
@@ -223,6 +252,44 @@ app.get('/api/base-caja', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false });
+    }
+});
+
+// --- RUTA: REABRIR CAJA (Para corregir cierres accidentales) ---
+// src/app.js
+
+app.post('/api/reabrir-caja', async (req, res) => {
+    const { usuario_nombre } = req.body;
+    try {
+        // Buscamos el ID de la ÚLTIMA caja cerrada de hoy
+        const lastBoxQuery = `
+            SELECT ac.id FROM aperturas_caja ac
+            JOIN usuarios u ON ac.usuario_id = u.id
+            WHERE u.nombre = $1 AND ac.fecha = CURRENT_DATE
+            ORDER BY ac.id DESC LIMIT 1
+        `;
+        const lastBoxRes = await pool.query(lastBoxQuery, [usuario_nombre]);
+
+        if (lastBoxRes.rows.length === 0) {
+            return res.status(400).json({ success: false, message: 'No hay cajas para reabrir' });
+        }
+
+        const boxId = lastBoxRes.rows[0].id;
+
+        // Reabrimos SOLO esa caja específica
+        const query = `
+            UPDATE aperturas_caja 
+            SET estado = 'ABIERTA', fecha_cierre = NULL, monto_final_sistema = NULL, 
+                monto_final_real = NULL, diferencia = NULL
+            WHERE id = $1
+        `;
+        
+        await pool.query(query, [boxId]);
+        res.json({ success: true, message: 'Caja reabierta correctamente' });
+
+    } catch (error) {
+        console.error('Error reabriendo:', error);
+        res.status(500).json({ success: false, message: 'No se pudo reabrir' });
     }
 });
 
@@ -235,6 +302,7 @@ app.get('/api/estado-caja', async (req, res) => {
             SELECT ac.* FROM aperturas_caja ac
             JOIN usuarios u ON ac.usuario_id = u.id
             WHERE u.nombre = $1 AND ac.fecha = CURRENT_DATE
+            ORDER BY ac.id DESC LIMIT 1
         `;
         const resultado = await pool.query(query, [usuario]);
 
@@ -285,6 +353,7 @@ app.post('/api/cerrar-caja', async (req, res) => {
             FROM aperturas_caja ac
             JOIN usuarios u ON ac.usuario_id = u.id
             WHERE u.nombre = $1 AND ac.fecha = CURRENT_DATE AND ac.estado = 'ABIERTA'
+            ORDER BY ac.id DESC LIMIT 1
         `;
         
         const resSaldo = await pool.query(querySaldo, [usuario_nombre]);
@@ -370,6 +439,50 @@ app.post('/api/transacciones', async (req, res) => {
     } catch (error) {
         console.error('Error guardando:', error);
         res.status(500).json({ success: false, message: 'Error en base de datos' });
+    }
+});
+
+// --- RUTA: OBTENER DATOS PARA EL REPORTE DE CIERRE ---
+app.get('/api/reporte-cierre', async (req, res) => {
+    const { usuario } = req.query;
+    try {
+        // 1. Obtener Totales Agrupados por Tipo de Transacción
+        const queryAgrupado = `
+            SELECT tp.nombre as concepto, SUM(t.monto) as total_valor, COUNT(*) as cantidad
+            FROM transacciones t
+            JOIN tipos_transaccion tp ON t.tipo_id = tp.id
+            JOIN usuarios u ON t.usuario_id = u.id
+            WHERE u.nombre = $1 AND DATE(t.fecha_hora) = CURRENT_DATE
+            GROUP BY tp.nombre
+            ORDER BY total_valor DESC
+        `;
+        const resAgrupado = await pool.query(queryAgrupado, [usuario]);
+
+        // 2. Obtener Lista Detallada
+        const queryDetalle = `
+            SELECT 
+                to_char(t.fecha_hora, 'HH12:MI AM') as hora,
+                tp.nombre as tipo,
+                t.descripcion,
+                t.monto
+            FROM transacciones t
+            JOIN tipos_transaccion tp ON t.tipo_id = tp.id
+            JOIN usuarios u ON t.usuario_id = u.id
+            WHERE u.nombre = $1 AND DATE(t.fecha_hora) = CURRENT_DATE
+            ORDER BY t.id ASC
+        `;
+        const resDetalle = await pool.query(queryDetalle, [usuario]);
+
+        res.json({
+            success: true,
+            resumen: resAgrupado.rows,
+            detalle: resDetalle.rows,
+            fecha: new Date().toLocaleDateString('es-CO')
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false });
     }
 });
 
