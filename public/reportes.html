@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes Históricos</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/transaccion.css"> <style>
+        /* Estilos extra para la barra de búsqueda */
+        .search-bar {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .search-group { flex: 1; min-width: 150px; }
+        .search-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50; }
+        
+        .kpi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .kpi-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); text-align: center; }
+        .kpi-val { font-size: 1.5rem; font-weight: bold; color: #2c3e50; margin: 10px 0; }
+        .kpi-label { color: #7f8c8d; font-size: 0.9rem; }
+
+        /* Colores para montos */
+        .dinero-positivo { color: #27ae60; font-weight: bold; }
+        .dinero-negativo { color: #e74c3c; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="brand"><h3>Mi Banco Local</h3></div>
+        <div class="user-profile"><p>Hola, <span id="nombreUsuario">...</span></p></div>
+        <ul>
+            <li><a href="dashboard.html">📊 Resumen</a></li>
+            <li><a href="transaccion.html">💰 Nueva Transacción</a></li>
+            <li><a href="reportes.html" class="active">📝 Reportes</a></li> <li><a href="caja.html">🔐 Control de Caja</a></li>
+            <li><a href="#" id="btnLogout" class="danger">Cerrar Sesión</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <h1>Historial de Movimientos</h1>
+            <p>Consulta transacciones pasadas por rango de fechas.</p>
+        </header>
+
+        <style>
+            .search-container {
+                background: #ffffff;
+                padding: 30px; /* Más espacio interno */
+                border-radius: 15px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+                margin-bottom: 40px;
+                border: 1px solid #edf2f7;
+            }
+        
+            .filters-grid {
+                display: flex; /* Cambiamos a Flex para mejor control de espacios */
+                flex-wrap: wrap; /* Permite que bajen si no caben */
+                gap: 30px; /* AUMENTADO: Mucha más separación entre elementos */
+                align-items: flex-end; /* Alinear al fondo (con el botón) */
+            }
+        
+            .input-group {
+                flex: 1; /* Todos crecen igual */
+                min-width: 200px; /* Ancho mínimo para que no se aplasten */
+            }
+        
+            .input-group label {
+                display: block;
+                margin-bottom: 10px; /* Más espacio entre etiqueta y caja */
+                font-weight: 600;
+                color: #34495e;
+                font-size: 0.95rem;
+            }
+        
+            .input-group input, .input-group select {
+                width: 100%;
+                padding: 12px 15px; /* Relleno más cómodo */
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                font-size: 1rem;
+                background-color: #f8fafc;
+                box-sizing: border-box; /* Evita que el padding rompa el ancho */
+            }
+        
+            .btn-search {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 12px 30px;
+                border-radius: 10px;
+                font-weight: bold;
+                cursor: pointer;
+                height: 48px; /* Altura fija para coincidir con los inputs */
+                width: 100%;
+                min-width: 150px;
+            }
+            
+            .btn-search:hover {
+                background-color: #2980b9;
+            }
+        </style>
+        
+        <div class="search-container">
+            <div class="filters-grid">
+                
+                <div class="input-group">
+                    <label>📅 Fecha Inicio</label>
+                    <input type="date" id="fechaInicio">
+                </div>
+        
+                <div class="input-group">
+                    <label>📅 Fecha Fin</label>
+                    <input type="date" id="fechaFin">
+                </div>
+        
+                <div class="input-group">
+                    <label>🏷️ Tipo de Operación</label>
+                    <select id="filtroTipo">
+                        <option value="TODOS">Todas las operaciones</option>
+                    </select>
+                </div>
+        
+                <div class="input-group">
+                    <button onclick="generarReporte()" class="btn-search">
+                        🔍 Buscar Reporte
+                    </button>
+                </div>
+        
+            </div>
+        </div>
+
+        <div class="kpi-container" id="panelResumen" style="display:none;">
+            <div class="kpi-card">
+                <div class="kpi-label">Transacciones</div>
+                <div class="kpi-val" id="kpiCantidad">0</div>
+            </div>
+            <div class="kpi-card" style="border-bottom: 4px solid #3498db;">
+                <div class="kpi-label">Volumen Operado</div>
+                <div class="kpi-val" id="kpiVolumen">$0</div>
+            </div>
+            <div class="kpi-card" style="border-bottom: 4px solid #27ae60;">
+                <div class="kpi-label">Entradas (Depósitos/Pagos)</div>
+                <div class="kpi-val" style="color:#27ae60" id="kpiEntradas">$0</div>
+            </div>
+            <div class="kpi-card" style="border-bottom: 4px solid #e74c3c;">
+                <div class="kpi-label">Salidas (Retiros)</div>
+                <div class="kpi-val" style="color:#e74c3c" id="kpiSalidas">$0</div>
+            </div>
+        </div>
+
+        <div class="history-card" style="height: auto; min-height: 400px;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background:#f8f9fa; text-align:left;">
+                        <th style="padding:15px;">Fecha</th>
+                        <th>Tipo</th>
+                        <th>Descripción</th>
+                        <th style="text-align:right; padding:15px;">Monto</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaReporte">
+                    <tr><td colspan="4" style="text-align:center; padding:30px;">Selecciona fechas para consultar</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+
+    <script src="js/reportes.js"></script>
+</body>
+</html>

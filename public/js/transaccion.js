@@ -114,6 +114,8 @@ function filtrarTipos(categoria) {
     setTimeout(() => divTipo.style.opacity = '1', 10);
 }
 
+// En public/js/transaccion.js
+
 async function cargarMisMovimientos() {
     const usuario = localStorage.getItem('usuario_nombre');
     const container = document.getElementById('listaMovimientos');
@@ -125,36 +127,31 @@ async function cargarMisMovimientos() {
         const data = await res.json();
 
         if (data.success) {
-            container.innerHTML = ''; // Limpiar lista
-            
+            container.innerHTML = ''; 
             const formato = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
             let sumaTotal = 0;
 
             if (data.movimientos.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align:center; padding: 40px; color: #a0aec0;">
-                        <p>📭</p>
-                        <p>Sin movimientos hoy</p>
-                    </div>`;
+                container.innerHTML = '<div style="text-align:center; padding: 40px; color: #a0aec0;"><p>📭</p><p>Sin movimientos hoy</p></div>';
+                contadorBadge.textContent = '0';
+                totalTurnoLabel.textContent = '$ 0';
                 return;
             }
 
             data.movimientos.forEach(mov => {
-                // Sumamos para el total del pie de página
-                // (Nota: Aquí sumamos valor absoluto, si quieres restar retiros dependería de la lógica contable,
-                // pero usualmente el cajero quiere saber "cuánto volumen moví").
                 sumaTotal += parseFloat(mov.monto);
 
-                // Crear el elemento Tarjeta
+                // Iconos simples
+                let icon = '📄';
+                if(mov.tipo.includes('Nequi')) icon = '📱';
+                else if(mov.tipo.includes('Servicio')) icon = '💡';
+                else if(mov.tipo.includes('Retiro')) icon = '💸';
+
                 const div = document.createElement('div');
                 div.className = 'feed-item';
                 
-                // Determinamos un icono simple según el texto (opcional)
-                let icon = '📄';
-                if(mov.tipo.includes('Nequi')) icon = '📱';
-                if(mov.tipo.includes('Servicio')) icon = '💡';
-                if(mov.tipo.includes('Retiro')) icon = '💸';
-
+                // Agregamos botones de acción a la derecha
+                // Usamos comillas invertidas simples para pasar strings en el onclick
                 div.innerHTML = `
                     <div class="feed-left">
                         <span class="feed-time">${mov.hora}</span>
@@ -163,19 +160,81 @@ async function cargarMisMovimientos() {
                             <p>${mov.descripcion}</p>
                         </div>
                     </div>
-                    <div class="feed-amount">
-                        ${formato.format(mov.monto)}
+                    <div style="text-align:right;">
+                        <div class="feed-amount">${formato.format(mov.monto)}</div>
+                        <div style="margin-top:5px;">
+                            <button onclick="editarTx(${mov.id}, '${mov.descripcion}', ${mov.monto})" style="cursor:pointer; border:none; background:none; font-size:1.1rem;" title="Editar">✏️</button>
+                            <button onclick="eliminarTx(${mov.id})" style="cursor:pointer; border:none; background:none; font-size:1.1rem; color:red;" title="Eliminar">🗑️</button>
+                        </div>
                     </div>
                 `;
                 container.appendChild(div);
             });
 
-            // Actualizar contadores
             contadorBadge.textContent = data.movimientos.length;
             totalTurnoLabel.textContent = formato.format(sumaTotal);
         }
     } catch (error) {
         console.error("Error cargando historial:", error);
+    }
+}
+
+// --- NUEVAS FUNCIONES ---
+
+async function eliminarTx(id) {
+    if(!confirm("¿Estás seguro de ELIMINAR esta transacción? \n\nEl saldo de la caja se ajustará automáticamente.")) return;
+
+    try {
+        const res = await fetch(`/api/transacciones/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+
+        if (data.success) {
+            // Recargamos todo para ver el saldo ajustado
+            cargarMisMovimientos();
+            cargarBaseCaja(); 
+            alert("🗑️ Transacción eliminada");
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión");
+    }
+}
+
+async function editarTx(id, descActual, montoActual) {
+    // Pedimos nuevos datos (forma sencilla con prompt)
+    const nuevoMonto = prompt("Editar Monto:", montoActual);
+    if (nuevoMonto === null) return; // Cancelado
+
+    const nuevaDesc = prompt("Editar Descripción:", descActual);
+    if (nuevaDesc === null) return; // Cancelado
+
+    if (isNaN(nuevoMonto) || nuevoMonto.trim() === '') {
+        return alert("El monto debe ser un número válido");
+    }
+
+    try {
+        const res = await fetch(`/api/transacciones/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                monto: parseFloat(nuevoMonto), 
+                descripcion: nuevaDesc 
+            })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            cargarMisMovimientos();
+            cargarBaseCaja();
+            alert("✅ Transacción actualizada");
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión");
     }
 }
 

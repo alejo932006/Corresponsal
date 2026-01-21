@@ -180,3 +180,48 @@ function prepararNuevoTurno() {
     document.getElementById('inputBaseInicial').value = '';
     document.getElementById('inputBaseInicial').focus();
 }
+
+async function resetearBaseDatos() {
+    // 1. Primera advertencia
+    if (!confirm("⚠️ ¡ADVERTENCIA CRÍTICA! ⚠️\n\n¿Estás seguro de que quieres borrar TODO el historial del sistema?\n\nSe creará una copia de seguridad antes de borrar.")) {
+        return;
+    }
+
+    // 2. Segunda advertencia (Pedir confirmación escrita)
+    const confirmacion = prompt("Para confirmar, escribe exactamente: BORRAR TODO");
+
+    if (confirmacion !== "BORRAR TODO") {
+        return alert("Operación cancelada. El código no coincide.");
+    }
+
+    // 3. Mostrar estado de carga (esto puede tardar unos segundos por el backup)
+    const btn = document.querySelector('button[onclick="resetearBaseDatos()"]');
+    const textoOriginal = btn.innerText;
+    btn.innerText = "⏳ Creando respaldo y borrando...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/admin/reset-db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ confirmacion })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            alert("✅ " + data.message);
+            // Recargar la página para volver al estado de "Apertura"
+            window.location.reload();
+        } else {
+            alert("❌ Error: " + data.message);
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión");
+    } finally {
+        btn.innerText = textoOriginal;
+        btn.disabled = false;
+    }
+}

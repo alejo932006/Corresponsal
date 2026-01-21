@@ -3,6 +3,8 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const pool = require('./db'); // Importamos la conexión
 const app = express();
+const fs = require('fs');
+const { exec } = require('child_process');
 
 // Middleware
 app.use(express.json()); // Para entender los datos JSON que envía el formulario
@@ -140,9 +142,9 @@ app.post('/api/transacciones', async (req, res) => {
 app.get('/api/mis-movimientos', async (req, res) => {
     const { usuario } = req.query; 
     try {
-        // 1. Buscamos a qué hora empezó el turno ACTUAL (o el último que cerró)
+        // 1. Buscamos hora de apertura Y EL ESTADO del turno
         const queryTurno = `
-            SELECT hora_apertura FROM aperturas_caja ac
+            SELECT hora_apertura, estado FROM aperturas_caja ac
             JOIN usuarios u ON ac.usuario_id = u.id
             WHERE u.nombre = $1 AND ac.fecha = CURRENT_DATE
             ORDER BY ac.id DESC LIMIT 1
@@ -154,7 +156,16 @@ app.get('/api/mis-movimientos', async (req, res) => {
             return res.json({ success: true, movimientos: [] });
         }
 
-        const horaInicioTurno = resTurno.rows[0].hora_apertura;
+        const turno = resTurno.rows[0];
+
+        // --- CORRECCIÓN CLAVE ---
+        // Si el último turno registrado ya está CERRADO, no mostrar nada.
+        if (turno.estado !== 'ABIERTA') {
+            return res.json({ success: true, movimientos: [] });
+        }
+        // ------------------------
+
+        const horaInicioTurno = turno.hora_apertura;
 
         // 2. Traemos solo las transacciones hechas DESPUÉS de esa hora
         const query = `
@@ -168,7 +179,7 @@ app.get('/api/mis-movimientos', async (req, res) => {
             JOIN tipos_transaccion tp ON t.tipo_id = tp.id
             JOIN usuarios u ON t.usuario_id = u.id
             WHERE u.nombre = $1 
-              AND t.fecha_hora >= $2  -- <--- ESTO LIMPIA LA LISTA EN EL NUEVO TURNO
+              AND t.fecha_hora >= $2
             ORDER BY t.id DESC
         `;
         
@@ -180,7 +191,6 @@ app.get('/api/mis-movimientos', async (req, res) => {
         res.status(500).json({ success: false });
     }
 });
-
 // src/app.js
 
 app.post('/api/apertura-caja', async (req, res) => {
@@ -217,31 +227,35 @@ app.post('/api/apertura-caja', async (req, res) => {
 app.get('/api/base-caja', async (req, res) => {
     const { usuario } = req.query;
     try {
-        // 1. Modificamos la consulta para pedir también el ESTADO
+        // 1. Buscamos la caja, y AÑADIMOS 'hora_apertura' a la consulta
         const queryInicial = `
-            SELECT monto_inicial, estado FROM aperturas_caja ac
+            SELECT monto_inicial, estado, hora_apertura FROM aperturas_caja ac
             JOIN usuarios u ON ac.usuario_id = u.id
             WHERE u.nombre = $1 AND ac.fecha = CURRENT_DATE
             ORDER BY ac.id DESC LIMIT 1
         `;
         const resInicial = await pool.query(queryInicial, [usuario]);
         
-        const baseInicial = resInicial.rows.length > 0 ? parseFloat(resInicial.rows[0].monto_inicial) : 0;
-        
-        // --- AQUÍ ESTABA EL DETALLE ---
-        // Antes: const cajaAbierta = resInicial.rows.length > 0;
-        // Ahora: Verificamos que exista Y que el estado sea explícitamente 'ABIERTA'
-        const cajaAbierta = resInicial.rows.length > 0 && resInicial.rows[0].estado === 'ABIERTA';
+        if (resInicial.rows.length === 0) {
+             return res.json({ success: true, base: 0, baseInicial: 0, cajaAbierta: false });
+        }
 
-        // 2. Sumar movimientos (El resto del código sigue igual)
+        const datosCaja = resInicial.rows[0];
+        const baseInicial = parseFloat(datosCaja.monto_inicial);
+        const cajaAbierta = datosCaja.estado === 'ABIERTA';
+
+        // 2. Sumar movimientos SOLO DESDE LA HORA DE APERTURA
         const queryMovimientos = `
             SELECT SUM(t.monto * tp.afecta_caja) as total_movimientos
             FROM transacciones t
             JOIN tipos_transaccion tp ON t.tipo_id = tp.id
             JOIN usuarios u ON t.usuario_id = u.id
-            WHERE u.nombre = $1 AND DATE(t.fecha_hora) = CURRENT_DATE
+            WHERE u.nombre = $1 
+              AND t.fecha_hora >= $2  -- <--- CORRECCIÓN CLAVE AQUÍ
         `;
-        const resMov = await pool.query(queryMovimientos, [usuario]);
+        
+        // Pasamos la hora_apertura como parámetro ($2)
+        const resMov = await pool.query(queryMovimientos, [usuario, datosCaja.hora_apertura]);
         const movimientos = parseFloat(resMov.rows[0].total_movimientos) || 0;
 
         const totalEnCaja = baseInicial + movimientos;
@@ -486,6 +500,190 @@ app.get('/api/reporte-cierre', async (req, res) => {
     }
 });
 
+// --- RUTA: RESETEAR BASE DE DATOS (CON BACKUP PREVIO) ---
+app.post('/api/admin/reset-db', async (req, res) => {
+    const { confirmacion } = req.body;
+
+    // 1. Medida de seguridad básica
+    if (confirmacion !== 'BORRAR TODO') {
+        return res.status(400).json({ success: false, message: 'Código de confirmación incorrecto.' });
+    }
+
+    try {
+        // 2. Preparar carpeta de backups
+        const backupDir = path.join(__dirname, '../backups');
+        if (!fs.existsSync(backupDir)) {
+            fs.mkdirSync(backupDir);
+        }
+
+        const fecha = new Date().toISOString().replace(/[:.]/g, '-');
+        const archivoBackup = path.join(backupDir, `respaldo_antes_de_reset_${fecha}.sql`);
+
+        // IMPORTANTE: Datos de conexión (Asegúrate que coincidan con tu db.js)
+        // En Windows, pg_dump debe estar en las variables de entorno o usar la ruta completa
+        const DB_USER = 'postgres';
+        const DB_PASS = '0534'; // Tu contraseña
+        const DB_NAME = 'Corresponsal';
+
+        // 3. COMANDO PARA CREAR BACKUP (pg_dump)
+        // Nota: En Windows seteamos la contraseña así: SET PGPASSWORD=...
+        const comandoBackup = `SET PGPASSWORD=${DB_PASS}&& pg_dump -U ${DB_USER} -h localhost -F c -b -v -f "${archivoBackup}" ${DB_NAME}`;
+
+        console.log("Iniciando respaldo...");
+
+        exec(comandoBackup, async (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error en backup: ${error.message}`);
+                return res.status(500).json({ success: false, message: 'Falló la copia de seguridad. No se borró nada.' });
+            }
+
+            console.log("Respaldo exitoso. Procediendo a borrar datos...");
+
+            // 4. BORRAR DATOS (Solo transacciones y cajas, mantenemos configuración)
+            try {
+                await pool.query('TRUNCATE TABLE transacciones, aperturas_caja RESTART IDENTITY CASCADE');
+                console.log("Datos borrados correctamente.");
+                
+                res.json({ 
+                    success: true, 
+                    message: 'Sistema reseteado exitosamente. Se creó un respaldo en la carpeta /backups.' 
+                });
+            } catch (dbError) {
+                console.error(dbError);
+                res.status(500).json({ success: false, message: 'Error al vaciar las tablas.' });
+            }
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error del servidor.' });
+    }
+});
+
+// --- RUTA: ELIMINAR TRANSACCIÓN ---
+app.delete('/api/transacciones/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        // 1. Validar que la transacción sea de HOY (Seguridad)
+        // No queremos borrar cosas de días pasados porque descuadramos cierres antiguos.
+        const check = await pool.query('SELECT fecha_hora FROM transacciones WHERE id = $1', [id]);
+        
+        if (check.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Transacción no encontrada' });
+        }
+        
+        // Convertimos fechas a string simple para comparar (YYYY-MM-DD)
+        const fechaTx = new Date(check.rows[0].fecha_hora).toDateString();
+        const hoy = new Date().toDateString();
+
+        if (fechaTx !== hoy) {
+            return res.status(400).json({ success: false, message: 'Solo puedes eliminar movimientos del día actual.' });
+        }
+
+        // 2. Borrar
+        await pool.query('DELETE FROM transacciones WHERE id = $1', [id]);
+        res.json({ success: true, message: 'Eliminada correctamente' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error al eliminar' });
+    }
+});
+
+// --- RUTA: EDITAR TRANSACCIÓN (Monto y Descripción) ---
+app.put('/api/transacciones/:id', async (req, res) => {
+    const { id } = req.params;
+    const { monto, descripcion } = req.body;
+
+    try {
+        // 1. Validar fecha (Igual que arriba)
+        const check = await pool.query('SELECT fecha_hora FROM transacciones WHERE id = $1', [id]);
+        if (check.rows.length === 0) return res.status(404).json({ success: false });
+
+        const fechaTx = new Date(check.rows[0].fecha_hora).toDateString();
+        const hoy = new Date().toDateString();
+
+        if (fechaTx !== hoy) {
+            return res.status(400).json({ success: false, message: 'Solo puedes editar movimientos del día actual.' });
+        }
+
+        // 2. Actualizar
+        await pool.query(
+            'UPDATE transacciones SET monto = $1, descripcion = $2 WHERE id = $3',
+            [monto, descripcion, id]
+        );
+        res.json({ success: true, message: 'Actualizada correctamente' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error al actualizar' });
+    }
+});
+
+// --- RUTA: REPORTES POR RANGO Y TIPO ---
+app.get('/api/reportes-rango', async (req, res) => {
+    const { usuario, inicio, fin, tipo } = req.query; // Recibimos 'tipo'
+
+    try {
+        if (!inicio || !fin) {
+            return res.status(400).json({ success: false, message: 'Faltan fechas' });
+        }
+
+        // Construcción dinámica de la consulta (Para filtrar si eligieron un tipo)
+        let filtroTipo = "";
+        const params = [usuario, inicio, fin];
+
+        if (tipo && tipo !== 'TODOS') {
+            filtroTipo = " AND t.tipo_id = $4";
+            params.push(tipo);
+        }
+
+        // 1. Obtener Resumen (Totales) con el filtro aplicado
+        const queryResumen = `
+            SELECT 
+                COUNT(*) as cantidad_total,
+                SUM(t.monto) as volumen_negociado,
+                SUM(CASE WHEN tp.afecta_caja = 1 THEN t.monto ELSE 0 END) as total_entradas,
+                SUM(CASE WHEN tp.afecta_caja = -1 THEN t.monto ELSE 0 END) as total_salidas
+            FROM transacciones t
+            JOIN tipos_transaccion tp ON t.tipo_id = tp.id
+            JOIN usuarios u ON t.usuario_id = u.id
+            WHERE u.nombre = $1 
+              AND t.fecha_hora::date BETWEEN $2 AND $3
+              ${filtroTipo}
+        `;
+        const resumen = await pool.query(queryResumen, params);
+
+        // 2. Obtener Lista Detallada con el filtro aplicado
+        const queryDetalle = `
+            SELECT 
+                t.id,
+                to_char(t.fecha_hora, 'YYYY-MM-DD HH12:MI AM') as fecha,
+                tp.nombre as tipo,
+                t.descripcion,
+                t.monto,
+                tp.afecta_caja
+            FROM transacciones t
+            JOIN tipos_transaccion tp ON t.tipo_id = tp.id
+            JOIN usuarios u ON t.usuario_id = u.id
+            WHERE u.nombre = $1 
+              AND t.fecha_hora::date BETWEEN $2 AND $3
+              ${filtroTipo}
+            ORDER BY t.fecha_hora DESC
+        `;
+        const detalle = await pool.query(queryDetalle, params);
+
+        res.json({
+            success: true,
+            resumen: resumen.rows[0],
+            movimientos: detalle.rows
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error generando reporte' });
+    }
+});
 
 // Iniciar servidor
 const PORT = 3000;
