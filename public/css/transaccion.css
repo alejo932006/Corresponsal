@@ -1,40 +1,39 @@
 /* =========================================
-   LAYOUT PRINCIPAL (GRID)
-   ========================================= */
-   .pos-container {
-    display: grid;
-    grid-template-columns: 1.4fr 0.9fr; /* Izquierda más ancha que derecha */
-    gap: 20px;
-    height: calc(100vh - 40px);
-    overflow: hidden; /* Evita scroll doble */
-}
-
-@media (max-width: 900px) {
-    .pos-container { 
-        grid-template-columns: 1fr; 
-        height: auto; 
-        overflow-y: auto;
-    }
-}
-
-/* =========================================
    PANEL IZQUIERDO (FORMULARIO + HISTORIAL)
    ========================================= */
-.panel-izquierdo {
+   .panel-izquierdo {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    overflow-y: auto; /* Scroll si la pantalla es pequeña */
+    /* IMPORTANTE: Asegura que el scroll sea dentro del panel */
+    overflow-y: auto; 
     padding-bottom: 20px;
+    height: 100%; /* Ocupa toda la altura disponible de la celda del grid */
 }
 
-/* Tarjetas con efecto Glass / Moderno */
+/* --- SECCIÓN 1: FORMULARIO (Tarjeta Superior) --- */
 .card-glass {
-    background: #ffffff;
-    border-radius: 16px;
+    background: #ffffff; /* BLANCO PURO */
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border: 1px solid #fff;
+    flex-shrink: 0; /* Evita que el formulario se encoja si falta espacio */
+}
+
+/* --- SECCIÓN 2: HISTORIAL (Tarjeta Inferior) --- */
+.recent-history {
+    /* COLOR DIFERENTE: Un gris azulado más notorio para diferenciarlo */
+    background: #e2e8f0; 
+    border-radius: 20px;
     padding: 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-    border: 1px solid #eef2f6;
+    border: 1px solid #cbd5e1;
+    
+    /* Configuración para que ocupe el espacio restante pero permita scroll */
+    flex: 1; 
+    min-height: 250px; /* Altura mínima garantizada */
+    display: flex;
+    flex-direction: column;
 }
 
 /* Header del Formulario */
@@ -138,7 +137,12 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
 }
 .full-width { width: 100%; margin-top: 5px; }
 
-.form-row { display: flex; gap: 10px; }
+/* --- SOLUCIÓN AL BOTÓN PEGADO --- */
+.form-row { 
+    display: flex; 
+    /* Usamos !important para anular el style="gap:15px" del HTML */
+    gap: 40px !important; 
+}
 .col-desc { flex: 1; }
 .col-btn { flex: 0 0 120px; }
 
@@ -160,20 +164,25 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
    ========================================= */
 .card-header-small {
     display: flex; justify-content: space-between; align-items: center;
-    padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; margin-bottom: 10px;
+    padding-bottom: 10px; border-bottom: 1px solid #cbd5e1; margin-bottom: 10px; /* Borde un poco más oscuro */
 }
-.card-header-small h3 { margin: 0; font-size: 1rem; color: #64748b; }
-.badge-count { background: #f1f5f9; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; color: #475569; }
+.card-header-small h3 { margin: 0; font-size: 1rem; color: #475569; }
+.badge-count { background: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; color: #475569; border: 1px solid #cbd5e1; }
 
-.mini-feed { max-height: 250px; overflow-y: auto; }
+.mini-feed { 
+    /* IMPORTANTE: El scroll debe estar aquí dentro si la lista es larga */
+    overflow-y: auto; 
+    flex: 1; /* Ocupa el espacio restante de la tarjeta gris */
+}
+
 .feed-item {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 10px; border-bottom: 1px solid #f8fafc;
+    padding: 10px; border-bottom: 1px solid #cbd5e1; /* Separadores visibles */
 }
 .feed-left { display: flex; gap: 10px; align-items: center; }
-.feed-time { font-size: 0.7rem; color: #94a3b8; font-weight: 600; }
+.feed-time { font-size: 0.7rem; color: #64748b; font-weight: 600; }
 .feed-info h4 { margin: 0; font-size: 0.85rem; color: #334155; }
-.feed-info p { margin: 0; font-size: 0.75rem; color: #94a3b8; }
+.feed-info p { margin: 0; font-size: 0.75rem; color: #64748b; }
 .feed-amount { font-weight: 700; font-size: 0.9rem; color: #334155; }
 
 /* =========================================
@@ -256,15 +265,15 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
 }
 .btn-confirm-all:hover { background: #1e293b; }
 
-/* --- WIDGET DE CAJA (Recuperado) --- */
+/* --- WIDGET DE CAJA --- */
 .widget-caja {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 15px 25px;
-    margin-bottom: 20px; /* Separación con el formulario */
+    margin-bottom: 20px;
     background: linear-gradient(to right, #ffffff, #f8fafc);
-    border-left: 5px solid #3b82f6; /* Borde azul decorativo */
+    border-left: 5px solid #3b82f6;
 }
 
 .caja-info h2 {
@@ -276,7 +285,7 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
 }
 
 .caja-info h2:hover {
-    color: #3b82f6; /* Azul al pasar el mouse para indicar que es clickeable */
+    color: #3b82f6; 
 }
 
 .label-caja {
@@ -314,14 +323,9 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
     color: white;
 }
 
-/* =========================================
-   ESTILOS RECUPERADOS PARA CAJA
-   ========================================= */
-
-/* Botón Genérico Principal (Usado en Caja) */
 .btn-save {
     padding: 15px 20px;
-    background-color: #3498db; /* Azul por defecto */
+    background-color: #3498db; 
     color: white;
     border: none;
     border-radius: 8px;
@@ -337,14 +341,13 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
 .btn-save:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-    filter: brightness(1.1); /* Lo hace un poquito más claro */
+    filter: brightness(1.1); 
 }
 
 .btn-save:active {
     transform: translateY(0);
 }
 
-/* Botón Cancelar / Volver */
 .btn-cancel {
     padding: 15px 20px;
     background-color: #95a5a6;
@@ -361,7 +364,6 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
     background-color: #7f8c8d;
 }
 
-/* Ajuste específico para el input de dinero en caja */
 .input-money {
     font-size: 2.5rem;
     font-weight: 700;
@@ -435,16 +437,15 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
 
    .stats-header {
     display: grid;
-    grid-template-columns: 1fr 1.5fr; /* Bancos un poco más ancho */
+    grid-template-columns: 1fr 1.5fr; 
     gap: 15px;
     margin-bottom: 20px;
 }
 
 @media (max-width: 768px) {
-    .stats-header { grid-template-columns: 1fr; } /* En celular, uno debajo de otro */
+    .stats-header { grid-template-columns: 1fr; }
 }
 
-/* Estilo Base de las Tarjetas */
 .stat-card {
     background: white;
     border-radius: 16px;
@@ -458,10 +459,9 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
     overflow: hidden;
 }
 
-/* --- TARJETA CAJA --- */
 .card-caja {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border-left: 4px solid #10b981; /* Borde verde */
+    border-left: 4px solid #10b981;
 }
 
 .stat-top {
@@ -479,9 +479,8 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
     cursor: pointer;
 }
 
-/* --- TARJETA BANCOS --- */
 .card-bancos {
-    padding: 10px 15px; /* Menos padding para aprovechar espacio */
+    padding: 10px 15px;
 }
 
 .stat-top-row {
@@ -499,9 +498,8 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
     gap: 8px;
 }
 
-/* Lista con Scroll (Para que no crezca demasiado) */
 .bancos-scroll-list {
-    max-height: 80px; /* Altura fija pequeña */
+    max-height: 80px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -509,7 +507,6 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
     padding-right: 5px;
 }
 
-/* Items de Bancos (Micro diseño) */
 .saldo-item {
     display: flex;
     justify-content: space-between;
@@ -523,7 +520,6 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
 
 .monto-saldo { font-weight: 700; color: #334155; }
 
-/* Botones y Iconos */
 .icon-circle {
     width: 35px; height: 35px;
     border-radius: 50%;
@@ -551,148 +547,133 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
 }
 .btn-mini-tool:hover { color: #3b82f6; transform: scale(1.1); }
 
-/* Scrollbar fino para bancos */
 .bancos-scroll-list::-webkit-scrollbar { width: 4px; }
 .bancos-scroll-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
 /* =========================================
-   MEJORA VISUAL DE INPUTS (TEXTBOXES)
+   MEJORA VISUAL DE INPUTS
    ========================================= */
 
-/* 1. Estilo General para todos los campos */
 select, input[type="text"], input[type="number"], .input-std {
     width: 100%;
-    padding: 14px 16px; /* Más espacio interno */
-    background-color: #ffffff; /* FONDO BLANCO (Más limpio) */
-    border: 1px solid #e2e8f0; /* Borde gris muy suave */
-    border-radius: 10px; /* Bordes más redondeados */
+    padding: 14px 16px;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
     font-size: 1rem;
-    color: #1e293b; /* Texto oscuro */
+    color: #1e293b;
     transition: all 0.2s ease-in-out;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02); /* Sombra muy sutil */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
-/* 2. Efecto al hacer clic (FOCUS) */
 select:focus, input:focus {
     background-color: #ffffff;
-    border-color: #3b82f6; /* Borde Azul Brillante */
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); /* Resplandor azul alrededor */
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
     outline: none;
 }
 
-/* 3. Estilo Especial para el MONTO (El campo grande) */
 .input-big {
     font-size: 2rem;
     font-weight: 800;
-    text-align: center; /* Número centrado */
-    background-color: #f8fafc; /* Un gris muy clarito para diferenciarlo */
+    text-align: center;
+    background-color: #f8fafc;
     border: 2px solid #cbd5e1;
     color: #0f172a;
     letter-spacing: 1px;
 }
 
-/* Cuando le das clic al monto se pone verde (Dinero) */
 .input-big:focus {
     background-color: #ffffff;
-    border-color: #22c55e; /* Verde Esmeralda */
-    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15); /* Resplandor verde */
+    border-color: #22c55e;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
 }
 
-/* 4. Etiquetas (Labels) más bonitas */
 .form-group label {
     display: block;
     margin-bottom: 8px;
     font-size: 0.85rem;
-    color: #64748b; /* Texto gris azulado */
+    color: #64748b;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-/* =========================================
-   MEJORAS PARA EL SELECTOR DE TIPO
-   ========================================= */
-
-/* 1. Separarlo más del campo de Monto */
 #groupTipo {
-    margin-bottom: 35px !important; /* Aumentamos el espacio inferior */
-    margin-top: 15px; /* Un poco de aire arriba también */
+    margin-bottom: 35px !important;
+    margin-top: 15px;
 }
 
-/* 2. Diseño Personalizado (Color Diferente) */
 #selectTipo {
-    background-color: #f0f9ff; /* Fondo Azul Cielo muy suave */
-    border: 2px solid #bae6fd; /* Borde Azul Claro */
-    color: #0369a1; /* Texto Azul Oscuro para contraste */
-    font-weight: 600; /* Letra un poco más gruesa */
+    background-color: #f0f9ff;
+    border: 2px solid #bae6fd;
+    color: #0369a1;
+    font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02); /* Sombra suave */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
 }
 
-/* Efecto Hover y Focus (Cuando lo tocas) */
 #selectTipo:hover, #selectTipo:focus {
-    background-color: #e0f2fe; /* Se oscurece un poquito */
-    border-color: #0284c7; /* El borde se pone más intenso */
-    box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15); /* Resplandor azul */
+    background-color: #e0f2fe;
+    border-color: #0284c7;
+    box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15);
     outline: none;
 }
+
 /* =========================================
-   ESTILOS DE TRANSACCIÓN (MODERNO)
+   ESTILOS DE TRANSACCIÓN (MODERNO) - FIX DE SCROLL
    ========================================= */
 
-/* CONTENEDOR PRINCIPAL (Dos columnas) */
 .transaction-layout {
     display: flex;
     gap: 30px;
-    align-items: flex-start;
-    flex-wrap: wrap; /* Para móviles */
+    align-items: stretch; 
+    flex-wrap: wrap; 
 }
 
-/* --- SECCIÓN IZQUIERDA: FORMULARIO (INPUTS) --- */
 .form-section {
-    flex: 1.5; /* Ocupa más espacio */
-    background: white;
-    padding: 30px;
-    border-radius: 20px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.03);
+    flex: 1.5; 
+    background: transparent; /* TRANSPARENTE para que se vean las tarjetas individuales */
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
-/* --- SECCIÓN DERECHA: CARRITO (EL CAMBIO GRANDE) --- */
 .cart-section {
-    flex: 1; /* Ocupa menos espacio */
-    background-color: #f1f4f8; /* FONDO DIFERENTE (Gris Azulado) */
+    flex: 1;
+    background-color: #f1f4f8;
     padding: 25px;
     border-radius: 20px;
     border: 1px solid #dce4ec;
-    box-shadow: inset 0 2px 10px rgba(0,0,0,0.02); /* Sombra interna sutil */
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.02);
     position: sticky;
-    top: 20px; /* Se queda fijo si haces scroll */
+    top: 20px;
     min-height: 400px;
     display: flex;
     flex-direction: column;
 }
 
-/* Título del Carrito */
 .cart-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    border-bottom: 2px dashed #cbd5e0; /* Línea punteada tipo ticket */
+    border-bottom: 2px dashed #cbd5e0;
     padding-bottom: 15px;
 }
 .cart-header h3 { margin: 0; color: #2c3e50; font-size: 1.2rem; }
 .cart-count { background: #2c3e50; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; }
 
-/* Lista de Ítems (Scrollable) */
 .cart-items-container {
-    flex: 1; /* Empuja el total hacia abajo */
+    flex: 1;
     overflow-y: auto;
     max-height: 400px;
-    padding-right: 5px; /* Espacio para scrollbar */
+    padding-right: 5px;
 }
 
-/* --- TARJETA DE ÍTEM INDIVIDUAL --- */
 .cart-item {
     background: white;
     padding: 15px;
@@ -703,19 +684,17 @@ select:focus, input:focus {
     justify-content: space-between;
     align-items: center;
     transition: transform 0.2s;
-    border-left: 4px solid #3498db; /* Borde azul indicador */
+    border-left: 4px solid #3498db;
 }
 
 .cart-item:hover { transform: translateX(3px); }
 
-/* Detalles del ítem */
 .item-info { display: flex; flex-direction: column; }
 .item-type { font-weight: bold; font-size: 0.9rem; color: #2d3436; }
 .item-desc { font-size: 0.75rem; color: #95a5a6; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .item-price { font-weight: bold; color: #2d3436; font-size: 1rem; }
 
-/* Botón Eliminar (Basurero) */
 .btn-delete-item {
     background: #ffebee;
     color: #e74c3c;
@@ -729,7 +708,6 @@ select:focus, input:focus {
 }
 .btn-delete-item:hover { background: #e74c3c; color: white; }
 
-/* --- ZONA DE TOTALES (ABAJO) --- */
 .cart-footer {
     margin-top: 20px;
     border-top: 2px dashed #cbd5e0;
@@ -745,7 +723,6 @@ select:focus, input:focus {
 .total-label { font-size: 1.1rem; color: #7f8c8d; }
 .total-amount { font-size: 1.8rem; font-weight: 800; color: #2c3e50; }
 
-/* Botón Procesar Gigante */
 .btn-process {
     width: 100%;
     padding: 18px;
@@ -763,23 +740,26 @@ select:focus, input:focus {
 }
 .btn-process:hover { transform: translateY(-2px); filter: brightness(1.1); }
 .btn-process:active { transform: translateY(0); }
-/* Asegura que el contenedor ponga los paneles uno al lado del otro */
+
+/* --- CONTENEDOR GLOBAL DEL POS --- */
 .pos-container {
-    display: flex;
-    gap: 30px;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 1.4fr 0.9fr;
+    gap: 20px;
+    height: calc(100vh - 40px);
+    overflow: hidden;
+    grid-template-rows: minmax(0, 1fr); /* FIX DEL SCROLL */
 }
 
-.panel-izquierdo {
-    flex: 1.5; /* El formulario ocupa el 60% */
-}
-
-.panel-derecho {
-    flex: 1;   /* El carrito ocupa el 40% */
+/* IMPORTANTE: Los hijos deben saber que pueden scrollear */
+.panel-izquierdo, .panel-derecho {
+    min-height: 0; 
+    max-height: 100%;
+    overflow-y: auto;
 }
 
 /* Responsive: En celulares, uno debajo del otro */
 @media (max-width: 768px) {
-    .pos-container { flex-direction: column; }
+    .pos-container { flex-direction: column; height: auto; overflow: visible; }
     .panel-derecho { width: 100%; }
 }
