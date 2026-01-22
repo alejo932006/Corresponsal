@@ -18,20 +18,124 @@
         .summary-val { font-weight: bold; }
         .diferencia-positiva { color: green; }
         .diferencia-negativa { color: red; }
+    
+        /* --- SOLUCIÓN DEL PROBLEMA DEL TICKET VISIBLE --- */
+        
+        /* 1. Ocultar el ticket en la pantalla normal */
+        .ticket-oculto {
+            display: none; 
+        }
+    
+        /* 2. Estilos básicos del ticket para cuando se imprima */
+        .ticket-header { text-align: center; }
+        .dashed { border-top: 1px dashed #000; margin: 10px 0; border-bottom: none; }
+        .ticket-table, .ticket-table-detail { width: 100%; font-size: 12px; }
+        .ticket-table-detail th { text-align: left; border-bottom: 1px solid #000; }
+        
+        /* 3. Configuración SOLO PARA IMPRESIÓN */
+        @media print {
+            /* Ocultar todo lo que no sea el ticket */
+            body * {
+                visibility: hidden;
+            }
+            .sidebar, .main-content, nav {
+                display: none !important;
+            }
+
+            /* Mostrar y posicionar el ticket */
+            #ticketImpresion, #ticketImpresion * {
+                visibility: visible;
+            }
+            
+            #ticketImpresion {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                
+                /* CAMBIO 1: Forzar el ancho exacto del papel */
+                width: 74mm; /* Usamos 74mm (no 80) para dejar margen de seguridad */
+                
+                /* CAMBIO 2: Reducir padding */
+                padding: 5px; /* 20px es demasiado y desperdicia papel */
+                
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 12px; /* Tamaño legible */
+            }
+            
+            .no-print { display: none; }
+
+            /* CAMBIO 3: Eliminar cabeceras y pies de página del navegador (URL, fecha, etc.) */
+            @page {
+                margin: 0;
+                size: auto;
+            }
+        }
     </style>
 </head>
 <body>
 
     <nav class="sidebar">
-        <div class="brand"><h3>Mi Banco Local</h3></div>
-        <div class="user-profile"><p>Hola, <span id="nombreUsuario">...</span></p></div>
+        <div class="brand">
+            <h3>🚀 Mi Corresponsal</h3>
+        </div>
+        <div class="user-profile">
+            <div class="avatar-circle">U</div>
+            <div class="user-info">
+                <p>Conectado como:</p>
+                <span id="nombreUsuario">Cargando...</span>
+            </div>
+        </div>
         <ul>
-            <li><a href="dashboard.html">📊 Resumen</a></li>
-            <li><a href="transaccion.html">💰 Nueva Transacción</a></li>
-            <li><a href="reportes.html">📝 Reportes</a></li>
-            <li><a href="caja.html" class="active">🔐 Control de Caja</a></li>
-            <li><a href="#" id="btnLogout" class="danger">Cerrar Sesión</a></li>
+            <div class="menu-category">Principal</div>
+            
+            <li>
+                <a href="dashboard.html"> <span class="icon">📊</span> Resumen
+                </a>
+            </li>
+    
+            <div class="menu-category">Operaciones</div>
+            
+            <li>
+                <a href="transaccion.html">
+                    <span class="icon">💰</span> Transacciones
+                </a>
+            </li>
+            <li>
+                <a href="compensaciones.html">
+                    <span class="icon">⚖️</span> Compensar Cupo
+                </a>
+            </li>
+    
+            <div class="menu-category">Gestión</div>
+            
+            <li>
+                <a href="reportes.html">
+                    <span class="icon">📝</span> Historial & Reportes
+                </a>
+            </li>
+            <li>
+                <a href="caja.html" class="active">
+                    <span class="icon">🔐</span> Arqueo de Caja
+                </a>
+            </li>
+            <li>
+                <a href="usuarios.html">
+                    <span class="icon">👤</span> Usuarios
+                </a>
+            </li>
+            <li>
+                <a href="estadisticas.html">
+                    <span class="icon">📈</span> Métricas en Vivo
+                </a>
+            </li>
         </ul>
+    
+        <div class="logout-container">
+            <a href="#" id="btnLogout" class="danger">
+                <span class="icon">🚪</span> Cerrar Sesión
+            </a>
+        </div>
     </nav>
 
     <main class="main-content">
@@ -41,8 +145,21 @@
                 <span class="big-icon">🌅</span>
                 <h2>Apertura de Caja</h2>
                 <p>Buenos días. Ingresa la base en efectivo para iniciar operaciones.</p>
+            
+                <div class="notice-box">
+                    <div class="notice-icon">⚠️</div>
+                    <div class="notice-content">
+                        <strong>¡Atención Cajero!</strong>
+                        Antes de abrir, cuenta físicamente los billetes y monedas. 
+                        <br>
+                        <small>Lo que ingreses aquí será tu responsabilidad durante el turno.</small>
+                    </div>
+                </div>
                 <input type="number" id="inputBaseInicial" class="input-money" placeholder="$ 0">
-                <button onclick="realizarApertura()" class="btn-save" style="width:80%">Abrir Turno</button>
+                
+                <button onclick="realizarApertura()" class="btn-save" style="width:80%">
+                    Abrir Turno
+                </button>
             </div>
 
             <div id="viewCierre" class="state-card">

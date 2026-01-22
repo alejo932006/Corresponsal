@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compensaciones - Liberar Cupo</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/transaccion.css">
+    <style>
+        /* --- ESTETICA FINTECH PRO --- */
+    
+        :root {
+            --primary-purple: #6c5ce7; /* Un morado más vibrante y moderno */
+            --secondary-purple: #a55eea; /* Un tono más claro para degradados */
+            --dark-text: #2d3436;
+            --light-bg: #f8f9fd;
+        }
+    
+        body {
+            background-color: var(--light-bg); /* Fondo general más suave */
+        }
+    
+        /* Layout principal */
+        .split-container {
+            display: flex;
+            gap: 30px; /* Más espacio entre columnas */
+            flex-wrap: wrap;
+            align-items: flex-start; /* Alinea al inicio para que no se estiren */
+        }
+        .form-section { flex: 1; min-width: 320px; }
+        .history-section { flex: 2; min-width: 450px; }
+        
+        /* --- TARJETAS MODERNAS --- */
+        .comp-card {
+            background: white;
+            padding: 35px; /* Más espacio interno */
+            border-radius: 20px; /* Bordes más redondeados */
+            /* Sombra suave y profunda para efecto flotante */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05), 0 2px 5px rgba(0,0,0,0.02);
+            border: none; /* Quitamos el borde superior antiguo */
+            position: relative;
+            overflow: hidden;
+        }
+    
+        /* Barra decorativa superior con degradado */
+        .comp-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 6px;
+            background: linear-gradient(90deg, var(--primary-purple), var(--secondary-purple));
+        }
+    
+        .comp-card h3 {
+            color: var(--dark-text);
+            font-weight: 700;
+            margin-bottom: 25px;
+            font-size: 1.4rem;
+            display: flex; align-items: center; gap: 10px;
+        }
+    
+        /* --- ALERTA INFORMATIVA MEJORADA --- */
+        .alert-info {
+            background-color: #f0eaff; /* Fondo morado muy claro */
+            color: var(--primary-purple);
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+            border-left: 4px solid var(--primary-purple); /* Línea lateral en vez de borde completo */
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            box-shadow: 0 2px 10px rgba(108, 92, 231, 0.1);
+        }
+        .alert-icon { font-size: 1.5rem; opacity: 0.8; }
+    
+        /* --- INPUTS MODERNOS --- */
+        .input-group label {
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 10px;
+            display: block;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+    
+        /* --- GRID DEL FORMULARIO (La Magia) --- */
+        #formCompensacion {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Dos columnas iguales */
+            gap: 20px; /* Espacio entre ellos */
+            align-items: end; /* Alineados al fondo */
+        }
+
+        /* El botón ocupará todo el ancho de abajo (span 2) */
+        .btn-compensar {
+            grid-column: span 2;
+            margin-top: 10px;
+        }
+
+        /* --- IGUALDAD VISUAL PERFECTA --- */
+        /* Forzamos a que Select e Input sean gemelos idénticos */
+        .input-group input, .input-group select {
+            width: 100%;
+            height: 50px; /* Altura fija obligatoria */
+            padding: 0 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            color: #2d3436;
+            background-color: #ffffff;
+            
+            /* Reset para que el navegador no imponga sus estilos */
+            -webkit-appearance: none;
+            appearance: none;
+            box-sizing: border-box; 
+        }
+
+        /* Estilo del Select para que tenga flechita moderna */
+        .input-group select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c5ce7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 15px;
+            cursor: pointer;
+        }
+
+        /* Ajuste específico para el contenedor del $ (Monto) */
+        .input-wrapper {
+            position: relative;
+            width: 100%;
+            height: 50px; /* Misma altura que el input */
+        }
+
+        .input-wrapper input {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            padding-left: 35px; /* Espacio para el $ */
+        }
+
+        .symbol-dollar {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7f8c8d;
+            font-weight: bold;
+            z-index: 10; /* Encima del input */
+            pointer-events: none; /* Click atraviesa */
+        }
+
+        /* Responsive: En celulares volver a 1 sola columna */
+        @media (max-width: 600px) {
+            #formCompensacion { grid-template-columns: 1fr; }
+            .btn-compensar { grid-column: span 1; }
+        }
+
+        /* Ajuste específico para el input de Monto que tiene el signo $ */
+        #inputMonto {
+            padding-left: 35px !important; /* Espacio extra solo a la izquierda */
+            padding-right: 15px;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+    
+        /* Efecto al hacer clic en un input */
+        .input-group input:focus, .input-group select:focus {
+            border-color: var(--primary-purple);
+            background-color: white;
+            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1); /* Resplandor morado */
+            outline: none;
+        }
+    
+        /* --- BOTÓN PRO CON DEGRADADO --- */
+        .btn-compensar {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            /* Degradado vibrante */
+            background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3); /* Sombra de color */
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
+    
+        /* Efecto Hover del Botón */
+        .btn-compensar:hover {
+            transform: translateY(-3px); /* Se levanta */
+            box-shadow: 0 8px 25px rgba(108, 92, 231, 0.5); /* Sombra más intensa */
+            filter: brightness(1.1); /* Un poco más brillante */
+        }
+        .btn-compensar:active { transform: translateY(-1px); }
+    
+    
+        /* --- TABLA DE HISTORIAL ELEGANTE --- */
+        table { 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0 8px; /* Espacio entre filas */
+        }
+    
+        thead th {
+            text-align: left;
+            padding: 15px;
+            color: #7f8c8d;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    
+        tbody tr {
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            transition: transform 0.2s;
+        }
+        tbody tr:hover {
+            transform: scale(1.01); /* Pequeño zoom al pasar el mouse */
+        }
+    
+        td {
+            padding: 15px;
+            border-top: 1px solid #f0f2f5;
+            border-bottom: 1px solid #f0f2f5;
+            color: var(--dark-text);
+        }
+        /* Bordes redondeados para las filas */
+        td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-left: 1px solid #f0f2f5;}
+        td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; border-right: 1px solid #f0f2f5;}
+    
+        .monto-highlight {
+            font-weight: 800;
+            color: var(--primary-purple);
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="brand">
+            <h3>🚀 Mi Corresponsal</h3>
+        </div>
+    
+        <div class="user-profile">
+            <div class="avatar-circle">U</div>
+            <div class="user-info">
+                <p>Conectado como:</p>
+                <span id="nombreUsuario">Cargando...</span>
+            </div>
+        </div>
+    
+        <ul>
+            <div class="menu-category">Principal</div>
+            
+            <li>
+                <a href="dashboard.html"> <span class="icon">📊</span> Resumen
+                </a>
+            </li>
+    
+            <div class="menu-category">Operaciones</div>
+            
+            <li>
+                <a href="transaccion.html">
+                    <span class="icon">💰</span> Transacciones
+                </a>
+            </li>
+            <li>
+                <a href="compensaciones.html"  class="active">
+                    <span class="icon">⚖️</span> Compensar Cupo
+                </a>
+            </li>
+    
+            <div class="menu-category">Gestión</div>
+            
+            <li>
+                <a href="reportes.html">
+                    <span class="icon">📝</span> Historial & Reportes
+                </a>
+            </li>
+            <li>
+                <a href="caja.html">
+                    <span class="icon">🔐</span> Arqueo de Caja
+                </a>
+            </li>
+            <li>
+                <a href="usuarios.html">
+                    <span class="icon">👤</span> Usuarios
+                </a>
+            </li>
+            <li>
+                <a href="estadisticas.html">
+                    <span class="icon">📈</span> Métricas en Vivo
+                </a>
+            </li>
+        </ul>
+    
+        <div class="logout-container">
+            <a href="#" id="btnLogout" class="danger">
+                <span class="icon">🚪</span> Cerrar Sesión
+            </a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <h1>Compensaciones Bancarias</h1>
+            <p style="color: #7f8c8d;">Gestiona la liberación de cupo mediante consignaciones al supermercado.</p>
+        </header>
+        
+        <div class="split-container">
+            
+            <div class="form-section">
+                <div class="comp-card">
+                    <h3><span style="background:#f0eaff; padding: 8px; border-radius:50%">➕</span> Nueva Compensación</h3>
+                    
+                    <div class="alert-info">
+                        <div class="alert-icon">💡</div>
+                        <div>
+                            <b>¿Cómo funciona?</b><br>
+                            El dinero lo pone el <b>Supermercado</b>. Tu Caja Física no se toca, tu Cupo Banco aumenta y se genera una Deuda Interna.
+                        </div>
+                    </div>
+        
+                    <form id="formCompensacion">
+                        <div class="input-group">
+                            <label>🏦 Banco</label> <select id="selectBanco" required style="cursor:pointer;">
+                                <option value="">Selecciona...</option>
+                            </select>
+                        </div>
+                    
+                        <div class="input-group">
+                            <label>💵 Monto</label> <div style="position:relative;">
+                                <span style="position:absolute; left:15px; top:50%; transform: translateY(-50%); color:#7f8c8d; font-weight:bold;">$</span>
+                                <input type="number" id="inputMonto" placeholder="0" required min="1" style="padding-left: 30px;">
+                            </div>
+                        </div>
+                    
+                        <div class="input-group">
+                            <label>📝 Referencia</label> <input type="text" id="inputRef" placeholder="Voucher / Recibo" required>
+                        </div>
+                    
+                        <button type="submit" class="btn-compensar">
+                            <span>🚀 Registrar</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        
+            <div class="history-section">
+                <div class="comp-card">
+                    <h3>📜 Historial Reciente</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Banco</th>
+                                <th>Referencia</th>
+                                <th style="text-align:right">Monto Liberado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaHistorial">
+                            <tr><td colspan="4" style="text-align:center; padding: 30px; color: #999;">Cargando historial...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/compensaciones.js"></script>
+</body>
+</html>

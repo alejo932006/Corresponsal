@@ -16,8 +16,8 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
         if (data.success) {
             localStorage.setItem('usuario_nombre', data.usuario);
-            // Si el login es correcto, redirige al panel principal
-            window.location.href = '/dashboard.html'; 
+            localStorage.setItem('usuario_rol', data.rol); // <--- AGREGAR ESTO
+            window.location.href = 'dashboard.html';
         } else {
             // Muestra el mensaje de error
             mensajeError.style.display = 'block';

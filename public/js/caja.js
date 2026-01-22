@@ -32,19 +32,58 @@ async function verificarEstadoCaja() {
 }
 
 async function realizarApertura() {
-    const monto = document.getElementById('inputBaseInicial').value;
-    if (!monto) return alert("Ingresa un monto válido");
+    const inputBase = document.getElementById('inputBaseInicial');
+    const monto = inputBase.value;
 
-    await fetch('/api/apertura-caja', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario_nombre: usuario, monto: monto })
-    });
+    // 1. Validación Básica: Que no esté vacío
+    if (!monto || monto < 0) {
+        return alert("⚠️ Por favor ingresa un monto base válido.");
+    }
 
-    verificarEstadoCaja(); // Recargar estado
+    // 2. Formatear el dinero para que el humano lo lea bien
+    // Esto evita el error visual de "100000" vs "1000000"
+    const montoLegible = new Intl.NumberFormat('es-CO', { 
+        style: 'currency', 
+        currency: 'COP', 
+        minimumFractionDigits: 0 
+    }).format(monto);
+
+    // 3. MENÚ DE CONFIRMACIÓN (El paso de seguridad)
+    const confirmado = confirm(
+        `🛑 CONFIRMACIÓN DE SEGURIDAD\n\n` +
+        `Vas a iniciar el turno con una Base Inicial de:\n` +
+        `👉 ${montoLegible}\n\n` +
+        `¿Confirmas que has contado el dinero físico y coincide?`
+    );
+
+    // Si el usuario le da a "Cancelar", detenemos todo.
+    if (!confirmado) return;
+
+    // 4. Si aceptó, procedemos con el envío al servidor
+    try {
+        const res = await fetch('/api/apertura-caja', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_nombre: usuario, monto: monto })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            verificarEstadoCaja(); // Recargar la pantalla
+        } else {
+            alert("Error: " + data.message);
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión al abrir la caja");
+    }
 }
 
 async function realizarCierre() {
+    const rol = localStorage.getItem('usuario_rol');
+    if (rol !== 'admin') return alert("⛔ Acceso denegado: Solo el Admin puede cerrar caja.");
     const fisico = document.getElementById('inputCierreFisico').value;
     if (!fisico) return alert("Debes contar el dinero físico primero.");
 

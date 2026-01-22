@@ -1,45 +1,156 @@
-body {
+/* =========================================
+   1. ESTILOS GLOBALES Y RESET
+   ========================================= */
+   body {
     font-family: 'Roboto', sans-serif;
     margin: 0;
     display: flex;
     background-color: #f4f7f6;
-    height: 100vh;
+    height: 100vh; /* Altura total de la ventana */
+    overflow: hidden; /* Evita doble scroll en el body */
 }
 
-/* SIDEBAR */
+/* =========================================
+   2. SIDEBAR MODERNO (PROFESIONAL)
+   ========================================= */
 .sidebar {
-    width: 250px;
-    background-color: #2c3e50;
+    width: 260px;
+    height: 100vh; /* Ocupa toda la altura vertical */
+    /* Degradado oscuro elegante */
+    background: linear-gradient(180deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
     color: white;
     display: flex;
-    flex-direction: column;
-    padding: 20px;
+    flex-direction: column; /* Organiza elementos verticalmente */
+    padding: 25px;
+    box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+    z-index: 100;
+    position: relative; /* O sticky según prefieras, pero relative va bien con flex */
 }
 
-.brand h3 { margin-top: 0; }
-.user-profile { margin-bottom: 20px; border-bottom: 1px solid #34495e; padding-bottom: 10px; }
+/* --- LOGO / MARCA --- */
+.brand {
+    margin-bottom: 30px;
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0; /* Evita que el logo se aplaste */
+}
 
-.sidebar ul { list-style: none; padding: 0; }
-.sidebar li { margin-bottom: 10px; }
+.brand h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    /* Texto con degradado */
+    background: linear-gradient(to right, #fff, #a8c0ff);
+    -webkit-background-clip: text;
+    background-clip: text; /* Estándar de compatibilidad */
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+/* --- PERFIL DE USUARIO --- */
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    flex-shrink: 0; /* Evita que el perfil se aplaste */
+}
+
+.avatar-circle {
+    width: 35px; height: 35px;
+    background: #3498db;
+    color: white;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    font-weight: bold;
+}
+
+.user-info p { margin: 0; font-size: 0.85rem; color: #ccc; }
+.user-info span { font-weight: bold; color: white; font-size: 0.95rem; }
+
+/* --- MENÚ DE NAVEGACIÓN (CON SCROLL INTELIGENTE) --- */
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex: 1; /* Ocupa todo el espacio sobrante en el centro */
+    overflow-y: auto; /* Scroll solo si la lista es muy larga */
+    
+    /* Scrollbar fina y discreta */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+
+/* Estilo para Webkit (Chrome/Safari) del scrollbar */
+.sidebar ul::-webkit-scrollbar { width: 6px; }
+.sidebar ul::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.2); border-radius: 3px; }
+
+/* Categorías del Menú */
+.menu-category {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #7f8c8d;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    padding-left: 10px;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.sidebar li { margin-bottom: 8px; }
+
 .sidebar a {
     text-decoration: none;
-    color: #bdc3c7;
-    display: block;
-    padding: 10px;
-    border-radius: 4px;
-    transition: 0.3s;
+    color: #b2bec3;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
 }
-.sidebar a:hover, .sidebar a.active {
-    background-color: #34495e;
-    color: white;
-}
-.sidebar a.danger:hover { background-color: #c0392b; }
 
-/* MAIN CONTENT */
+.sidebar a .icon { font-size: 1.1rem; width: 20px; text-align: center; }
+
+/* Hover y Activo */
+.sidebar a:hover {
+    background-color: rgba(255,255,255,0.1);
+    color: white;
+    transform: translateX(5px);
+}
+
+.sidebar a.active {
+    background: linear-gradient(90deg, #6c5ce7, #a55eea);
+    color: white;
+    box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+    font-weight: 600;
+}
+
+/* --- BOTÓN SALIR (AL FINAL) --- */
+.logout-container {
+    margin-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 20px;
+    flex-shrink: 0; /* Asegura que siempre se vea al final */
+}
+
+.sidebar a.danger { color: #ff7675; }
+.sidebar a.danger:hover { background-color: rgba(231, 76, 60, 0.2); color: #ff7675; }
+
+/* =========================================
+   3. CONTENIDO PRINCIPAL (MAIN)
+   ========================================= */
 .main-content {
     flex: 1;
     padding: 30px;
-    overflow-y: auto;
+    overflow-y: auto; /* El contenido hace scroll independiente del menú */
 }
 
 header {
@@ -49,7 +160,9 @@ header {
     margin-bottom: 30px;
 }
 
-/* CARDS */
+/* =========================================
+   4. TARJETAS DE INFORMACIÓN (DASHBOARD)
+   ========================================= */
 .cards-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -68,11 +181,14 @@ header {
 .card .amount { font-size: 2rem; font-weight: bold; margin: 0 0 5px 0; color: #2c3e50; }
 .card small { font-size: 0.8rem; color: #95a5a6; }
 
+/* Bordes de color para identificar tarjetas */
 .card-blue { border-left: 5px solid #3498db; }
 .card-green { border-left: 5px solid #2ecc71; }
 .card-red { border-left: 5px solid #e74c3c; }
 
-/* TABLA */
+/* =========================================
+   5. TABLAS DE DATOS
+   ========================================= */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -84,3 +200,52 @@ table {
 
 th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ecf0f1; }
 th { background-color: #f8f9fa; font-weight: 600; color: #2c3e50; }
+
+/* =========================================
+   6. COMPONENTES ESPECIALES
+   ========================================= */
+
+/* --- BOTÓN AUDITORÍA (GLASSMORPHISM) --- */
+.btn-audit-pro {
+    background: transparent;
+    border: 1px solid #2ecc71;
+    color: #2ecc71;
+    padding: 6px 15px;
+    border-radius: 30px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-audit-pro:hover {
+    background: #2ecc71;
+    color: white;
+    box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-audit-pro:active { transform: translateY(0); }
+
+/* --- AVISO DE NOTIFICACIÓN (CAJA) --- */
+.notice-box {
+    background-color: #fff8e1;
+    border-left: 5px solid #ffb300;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+    text-align: left;
+    color: #5d4037;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.notice-icon { font-size: 1.5rem; color: #ffb300; }
+.notice-content strong { display: block; margin-bottom: 4px; color: #e65100; }

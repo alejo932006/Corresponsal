@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Métricas en Vivo</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        /* ESTILOS ESPECÍFICOS PARA MÉTRICAS */
+        
+        /* Contenedor de la cuadrícula */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        /* Tarjeta de cada Operación */
+        .metric-card {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-bottom: 4px solid #e2e8f0; /* Borde gris por defecto */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        /* Encabezado de la tarjeta */
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .metric-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2d3436;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-badge {
+            background: #f1f2f6;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #7f8c8d;
+        }
+
+        /* Valores */
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #2d3436;
+            margin-bottom: 5px;
+        }
+
+        .metric-count {
+            font-size: 0.9rem;
+            color: #636e72;
+        }
+
+        /* Barra de progreso decorativa */
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #f0f2f5;
+            margin-top: 15px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%; /* Se animará con JS */
+            background: #bdc3c7;
+            transition: width 1s ease;
+        }
+
+        /* Colores dinámicos por tipo (se asignan con JS o CSS) */
+        .card-blue { border-color: #3498db; }
+        .card-blue .progress-fill { background: #3498db; }
+        
+        .card-green { border-color: #2ecc71; }
+        .card-green .progress-fill { background: #2ecc71; }
+
+        .card-purple { border-color: #9b59b6; }
+        .card-purple .progress-fill { background: #9b59b6; }
+
+        /* Botón flotante de actualizar */
+        .fab-refresh {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2c3e50;
+            color: white;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.3s;
+            border: none;
+            z-index: 999;
+        }
+        .fab-refresh:hover { transform: rotate(180deg); background: #34495e; }
+
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="brand">
+            <h3>🚀 Mi Corresponsal</h3>
+        </div>
+    
+        <div class="user-profile">
+            <div class="avatar-circle">U</div>
+            <div class="user-info">
+                <p>Conectado como:</p>
+                <span id="nombreUsuario">Cargando...</span>
+            </div>
+        </div>
+    
+        <ul>
+            <div class="menu-category">Principal</div>
+            
+            <li>
+                <a href="dashboard.html"> <span class="icon">📊</span> Resumen
+                </a>
+            </li>
+    
+            <div class="menu-category">Operaciones</div>
+            
+            <li>
+                <a href="transaccion.html">
+                    <span class="icon">💰</span> Transacciones
+                </a>
+            </li>
+            <li>
+                <a href="compensaciones.html">
+                    <span class="icon">⚖️</span> Compensar Cupo
+                </a>
+            </li>
+    
+            <div class="menu-category">Gestión</div>
+            
+            <li>
+                <a href="reportes.html">
+                    <span class="icon">📝</span> Historial & Reportes
+                </a>
+            </li>
+            <li>
+                <a href="caja.html">
+                    <span class="icon">🔐</span> Arqueo de Caja
+                </a>
+            </li>
+            <li>
+                <a href="usuarios.html">
+                    <span class="icon">👤</span> Usuarios
+                </a>
+            </li>
+            <li>
+                <a href="estadisticas.html" class="active">
+                    <span class="icon">📈</span> Métricas en Vivo
+                </a>
+            </li>
+        </ul>
+    
+        <div class="logout-container">
+            <a href="#" id="btnLogout" class="danger">
+                <span class="icon">🚪</span> Cerrar Sesión
+            </a>
+        </div>
+    </nav>
+
+
+    <main class="main-content">
+        <header style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap: 20px;">
+            <div>
+                <h1>Monitor de Operaciones</h1>
+                <p>Estadísticas del día seleccionado.</p>
+            </div>
+            
+            <div style="background: white; padding: 10px 20px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 10px;">
+                <label for="filtroFecha" style="font-weight: bold; color: #2c3e50;">📅 Ver Fecha:</label>
+                <input type="date" id="filtroFecha" style="border: none; background: transparent; font-family: inherit; font-size: 1rem; color: #2c3e50; cursor: pointer;">
+            </div>
+        </header>
+
+        <div style="background: linear-gradient(135deg, #6c5ce7, #a55eea); color: white; padding: 30px; border-radius: 16px; margin-top: 20px; display: flex; justify-content: space-around; text-align: center;">
+            <div>
+                <div style="font-size: 0.9rem; opacity: 0.8; text-transform: uppercase;">Total Operaciones</div>
+                <div style="font-size: 2.5rem; font-weight: 800;" id="totalOps">0</div>
+            </div>
+            <div style="border-left: 1px solid rgba(255,255,255,0.2);"></div>
+            <div>
+                <div style="font-size: 0.9rem; opacity: 0.8; text-transform: uppercase;">Volumen Movido</div>
+                <div style="font-size: 2.5rem; font-weight: 800;" id="totalVolumen">$ 0</div>
+            </div>
+        </div>
+
+        <div id="gridMetricas" class="metrics-grid">
+            <p>Cargando datos...</p>
+        </div>
+
+    </main>
+
+    <button class="fab-refresh" onclick="cargarMetricas()" title="Actualizar Datos">↻</button>
+
+    <script src="js/estadisticas.js"></script>
+</body>
+</html>

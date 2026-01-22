@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/transaccion.css">
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="brand">
+            <h3>🚀 Mi Corresponsal</h3>
+        </div>
+    
+        <div class="user-profile">
+            <div class="avatar-circle">U</div>
+            <div class="user-info">
+                <p>Conectado como:</p>
+                <span id="nombreUsuario">Cargando...</span>
+            </div>
+        </div>
+    
+        <ul>
+            <div class="menu-category">Principal</div>
+            
+            <li>
+                <a href="dashboard.html"> <span class="icon">📊</span> Resumen
+                </a>
+            </li>
+    
+            <div class="menu-category">Operaciones</div>
+            
+            <li>
+                <a href="transaccion.html">
+                    <span class="icon">💰</span> Transacciones
+                </a>
+            </li>
+            <li>
+                <a href="compensaciones.html">
+                    <span class="icon">⚖️</span> Compensar Cupo
+                </a>
+            </li>
+    
+            <div class="menu-category">Gestión</div>
+            
+            <li>
+                <a href="reportes.html">
+                    <span class="icon">📝</span> Historial & Reportes
+                </a>
+            </li>
+            <li>
+                <a href="caja.html">
+                    <span class="icon">🔐</span> Arqueo de Caja
+                </a>
+            </li>
+            <li>
+                <a href="usuarios.html" class="active">
+                    <span class="icon">👤</span> Usuarios
+                </a>
+            </li>
+            <li>
+                <a href="estadisticas.html">
+                    <span class="icon">📈</span> Métricas en Vivo
+                </a>
+            </li>
+        </ul>
+    
+        <div class="logout-container">
+            <a href="#" id="btnLogout" class="danger">
+                <span class="icon">🚪</span> Cerrar Sesión
+            </a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="pos-container">
+            <section class="panel-izquierdo">
+                <div class="card-glass">
+                    <header class="card-header">
+                        <h2>👤 Nuevo Usuario</h2>
+                    </header>
+                    <form id="formUsuario">
+                        <div class="form-group">
+                            <label>Nombre de Usuario</label>
+                            <input type="text" id="newUser" class="input-std" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Contraseña</label>
+                            <input type="password" id="newPass" class="input-std" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Rol</label>
+                            <select id="newRol" class="input-std">
+                                <option value="cajero">Cajero</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-action-add" style="height:50px; margin-top:10px;">Crear Usuario</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="panel-derecho">
+                <div class="ticket-card">
+                    <header class="ticket-header">
+                        <h3>Usuarios del Sistema</h3>
+                    </header>
+                    <div class="ticket-body">
+                        <div id="listaUsuarios" class="items-list">
+                            </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // Lógica simple incrustada para no crear otro archivo JS
+        document.addEventListener('DOMContentLoaded', () => {
+            const usuario = localStorage.getItem('usuario_nombre');
+            const rol = localStorage.getItem('usuario_rol');
+            
+            document.getElementById('nombreUsuario').textContent = usuario;
+
+            // Seguridad: Si no es admin, sacarlo de aquí
+            if (rol !== 'admin') {
+                alert("Acceso denegado: Solo administradores.");
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            cargarUsuarios();
+
+            // Logout
+            document.getElementById('btnLogout').addEventListener('click', () => {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            });
+
+            // Crear Usuario
+            document.getElementById('formUsuario').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const nombre = document.getElementById('newUser').value;
+                const password = document.getElementById('newPass').value;
+                const rol = document.getElementById('newRol').value;
+
+                const res = await fetch('/api/usuarios', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ nombre, password, rol })
+                });
+                
+                if((await res.json()).success) {
+                    alert("Usuario creado");
+                    document.getElementById('formUsuario').reset();
+                    cargarUsuarios();
+                } else {
+                    alert("Error creando usuario");
+                }
+            });
+        });
+
+        async function cargarUsuarios() {
+            const res = await fetch('/api/usuarios');
+            const data = await res.json();
+            const lista = document.getElementById('listaUsuarios');
+            lista.innerHTML = '';
+
+            data.usuarios.forEach(u => {
+                const div = document.createElement('div');
+                div.className = 'op-item';
+                div.innerHTML = `
+                    <div class="op-info">
+                        <h4>${u.nombre}</h4>
+                        <p>${u.rol.toUpperCase()}</p>
+                    </div>
+                    <div class="op-amount">🆔 ${u.id}</div>
+                `;
+                lista.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -11,18 +11,67 @@
 
     <nav class="sidebar">
         <div class="brand">
-            <h3>Corresponsal Bancolombia</h3>
+            <h3>🚀 Mi Corresponsal</h3>
         </div>
+    
         <div class="user-profile">
-            <p>Hola, <span id="nombreUsuario">Usuario</span></p>
+            <div class="avatar-circle">U</div>
+            <div class="user-info">
+                <p>Conectado como:</p>
+                <span id="nombreUsuario">Cargando...</span>
+            </div>
         </div>
+    
         <ul>
-            <li><a href="dashboard.html" class="active">📊 Resumen</a></li>
-            <li><a href="transaccion.html">💰 Nueva Transacción</a></li>
-            <li><a href="reportes.html">📝 Reportes</a></li>
-            <li><a href="caja.html">🔐 Control de Caja</a></li>
-            <li><a href="#" id="btnLogout" class="danger">Cerrar Sesión</a></li>
+            <div class="menu-category">Principal</div>
+            
+            <li>
+                <a href="dashboard.html" class="active"> <span class="icon">📊</span> Resumen
+                </a>
+            </li>
+    
+            <div class="menu-category">Operaciones</div>
+            
+            <li>
+                <a href="transaccion.html">
+                    <span class="icon">💰</span> Transacciones
+                </a>
+            </li>
+            <li>
+                <a href="compensaciones.html">
+                    <span class="icon">⚖️</span> Compensar Cupo
+                </a>
+            </li>
+    
+            <div class="menu-category">Gestión</div>
+            
+            <li>
+                <a href="reportes.html">
+                    <span class="icon">📝</span> Historial & Reportes
+                </a>
+            </li>
+            <li>
+                <a href="caja.html">
+                    <span class="icon">🔐</span> Arqueo de Caja
+                </a>
+            </li>
+            <li>
+                <a href="usuarios.html">
+                    <span class="icon">👤</span> Usuarios
+                </a>
+            </li>
+            <li>
+                <a href="estadisticas.html">
+                    <span class="icon">📈</span> Métricas en Vivo
+                </a>
+            </li>
         </ul>
+    
+        <div class="logout-container">
+            <a href="#" id="btnLogout" class="danger">
+                <span class="icon">🚪</span> Cerrar Sesión
+            </a>
+        </div>
     </nav>
 
     <main class="main-content">
@@ -41,7 +90,14 @@
             <div class="card card-green">
                 <h3>Cupo Banco (Digital)</h3>
                 <p class="amount" id="saldoBanco">$ 0.00</p>
-                <small>Saldo en la plataforma bancaria</small>
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px;">
+                    <small style="opacity: 0.9;">Saldo en plataforma</small>
+                    
+                    <button onclick="abrirBanco()" class="btn-audit-pro">
+                        <span>Verificar</span>
+                        <span style="font-size: 1.1em;">↗</span> </button>
+                </div>
             </div>
 
             <div class="card card-red">

@@ -63,6 +63,18 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error cargando dashboard:', error);
         }
     }
-
     cargarDatosDashboard();
 });
+
+function abrirBanco() {
+    // URL de la plataforma de corresponsales (¡Asegúrate que sea la correcta!)
+    const urlBanco = "https://www.somosbancolombia.com.co/login"; // Pon aquí tu link real de login
+    
+    // Abrir una ventana flotante pequeña a la derecha de la pantalla
+    const ancho = 500;
+    const alto = 600;
+    const izquierda = window.screen.width - ancho;
+    const top = 0;
+    
+    window.open(urlBanco, 'BancoCheck', `width=${ancho},height=${alto},left=${izquierda},top=${top},resizable=yes,scrollbars=yes`);
+}

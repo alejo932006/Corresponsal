@@ -313,3 +313,473 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
     background: #3b82f6;
     color: white;
 }
+
+/* =========================================
+   ESTILOS RECUPERADOS PARA CAJA
+   ========================================= */
+
+/* Botón Genérico Principal (Usado en Caja) */
+.btn-save {
+    padding: 15px 20px;
+    background-color: #3498db; /* Azul por defecto */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    filter: brightness(1.1); /* Lo hace un poquito más claro */
+}
+
+.btn-save:active {
+    transform: translateY(0);
+}
+
+/* Botón Cancelar / Volver */
+.btn-cancel {
+    padding: 15px 20px;
+    background-color: #95a5a6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-cancel:hover {
+    background-color: #7f8c8d;
+}
+
+/* Ajuste específico para el input de dinero en caja */
+.input-money {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    text-align: center;
+    border: 2px solid #dfe6e9;
+    border-radius: 12px;
+    padding: 15px;
+    width: 80%;
+    margin: 20px auto;
+    display: block;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.input-money:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+}
+
+/* --- WIDGET DE SALDOS BANCARIOS --- */
+.widget-bancos-list {
+    margin-bottom: 20px;
+    padding: 15px 20px;
+}
+
+.header-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 5px;
+}
+.header-compact h3 { margin: 0; font-size: 1rem; color: #334155; }
+
+.btn-icon-refresh {
+    background: none; border: none; cursor: pointer; font-size: 1.1rem;
+    transition: transform 0.3s;
+}
+.btn-icon-refresh:hover { transform: rotate(180deg); }
+
+.list-saldos { display: flex; flex-direction: column; gap: 8px; }
+
+.saldo-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px; background: #f8fafc; border-radius: 8px;
+    border: 1px solid #f1f5f9; transition: 0.2s;
+}
+.saldo-item:hover { background: #fff; border-color: #cbd5e1; }
+
+.bank-info-row { display: flex; align-items: center; gap: 8px; }
+.bank-mini-icon { font-size: 1.2rem; }
+.bank-name-small { font-size: 0.85rem; font-weight: 600; color: #475569; }
+
+.saldo-actions { display: flex; align-items: center; gap: 10px; }
+.monto-saldo { font-weight: 700; font-size: 0.9rem; color: #0f172a; }
+
+.btn-adjust-mini {
+    background: #e2e8f0; color: #475569;
+    border: none; border-radius: 4px;
+    padding: 2px 6px; font-size: 0.7rem; cursor: pointer;
+}
+.btn-adjust-mini:hover { background: #cbd5e1; color: #1e293b; }
+
+.loading-text { text-align: center; font-size: 0.8rem; color: #94a3b8; padding: 10px; }
+
+/* =========================================
+   NUEVO ENCABEZADO UNIFICADO (STATS)
+   ========================================= */
+
+   .stats-header {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr; /* Bancos un poco más ancho */
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .stats-header { grid-template-columns: 1fr; } /* En celular, uno debajo de otro */
+}
+
+/* Estilo Base de las Tarjetas */
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    border: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* --- TARJETA CAJA --- */
+.card-caja {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-left: 4px solid #10b981; /* Borde verde */
+}
+
+.stat-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.stat-content h3 {
+    margin: 0;
+    font-size: 1.8rem;
+    color: #1e293b;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+/* --- TARJETA BANCOS --- */
+.card-bancos {
+    padding: 10px 15px; /* Menos padding para aprovechar espacio */
+}
+
+.stat-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 5px;
+}
+
+.title-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Lista con Scroll (Para que no crezca demasiado) */
+.bancos-scroll-list {
+    max-height: 80px; /* Altura fija pequeña */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-right: 5px;
+}
+
+/* Items de Bancos (Micro diseño) */
+.saldo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #f1f5f9;
+}
+
+.monto-saldo { font-weight: 700; color: #334155; }
+
+/* Botones y Iconos */
+.icon-circle {
+    width: 35px; height: 35px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+}
+.cash-bg { background: #d1fae5; color: #059669; }
+.bank-bg { background: #dbeafe; color: #2563eb; }
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.btn-mini-tool {
+    background: transparent;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: #94a3b8;
+    transition: 0.2s;
+    padding: 0;
+}
+.btn-mini-tool:hover { color: #3b82f6; transform: scale(1.1); }
+
+/* Scrollbar fino para bancos */
+.bancos-scroll-list::-webkit-scrollbar { width: 4px; }
+.bancos-scroll-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+/* =========================================
+   MEJORA VISUAL DE INPUTS (TEXTBOXES)
+   ========================================= */
+
+/* 1. Estilo General para todos los campos */
+select, input[type="text"], input[type="number"], .input-std {
+    width: 100%;
+    padding: 14px 16px; /* Más espacio interno */
+    background-color: #ffffff; /* FONDO BLANCO (Más limpio) */
+    border: 1px solid #e2e8f0; /* Borde gris muy suave */
+    border-radius: 10px; /* Bordes más redondeados */
+    font-size: 1rem;
+    color: #1e293b; /* Texto oscuro */
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02); /* Sombra muy sutil */
+}
+
+/* 2. Efecto al hacer clic (FOCUS) */
+select:focus, input:focus {
+    background-color: #ffffff;
+    border-color: #3b82f6; /* Borde Azul Brillante */
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); /* Resplandor azul alrededor */
+    outline: none;
+}
+
+/* 3. Estilo Especial para el MONTO (El campo grande) */
+.input-big {
+    font-size: 2rem;
+    font-weight: 800;
+    text-align: center; /* Número centrado */
+    background-color: #f8fafc; /* Un gris muy clarito para diferenciarlo */
+    border: 2px solid #cbd5e1;
+    color: #0f172a;
+    letter-spacing: 1px;
+}
+
+/* Cuando le das clic al monto se pone verde (Dinero) */
+.input-big:focus {
+    background-color: #ffffff;
+    border-color: #22c55e; /* Verde Esmeralda */
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15); /* Resplandor verde */
+}
+
+/* 4. Etiquetas (Labels) más bonitas */
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: #64748b; /* Texto gris azulado */
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* =========================================
+   MEJORAS PARA EL SELECTOR DE TIPO
+   ========================================= */
+
+/* 1. Separarlo más del campo de Monto */
+#groupTipo {
+    margin-bottom: 35px !important; /* Aumentamos el espacio inferior */
+    margin-top: 15px; /* Un poco de aire arriba también */
+}
+
+/* 2. Diseño Personalizado (Color Diferente) */
+#selectTipo {
+    background-color: #f0f9ff; /* Fondo Azul Cielo muy suave */
+    border: 2px solid #bae6fd; /* Borde Azul Claro */
+    color: #0369a1; /* Texto Azul Oscuro para contraste */
+    font-weight: 600; /* Letra un poco más gruesa */
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02); /* Sombra suave */
+}
+
+/* Efecto Hover y Focus (Cuando lo tocas) */
+#selectTipo:hover, #selectTipo:focus {
+    background-color: #e0f2fe; /* Se oscurece un poquito */
+    border-color: #0284c7; /* El borde se pone más intenso */
+    box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15); /* Resplandor azul */
+    outline: none;
+}
+/* =========================================
+   ESTILOS DE TRANSACCIÓN (MODERNO)
+   ========================================= */
+
+/* CONTENEDOR PRINCIPAL (Dos columnas) */
+.transaction-layout {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+    flex-wrap: wrap; /* Para móviles */
+}
+
+/* --- SECCIÓN IZQUIERDA: FORMULARIO (INPUTS) --- */
+.form-section {
+    flex: 1.5; /* Ocupa más espacio */
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.03);
+}
+
+/* --- SECCIÓN DERECHA: CARRITO (EL CAMBIO GRANDE) --- */
+.cart-section {
+    flex: 1; /* Ocupa menos espacio */
+    background-color: #f1f4f8; /* FONDO DIFERENTE (Gris Azulado) */
+    padding: 25px;
+    border-radius: 20px;
+    border: 1px solid #dce4ec;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.02); /* Sombra interna sutil */
+    position: sticky;
+    top: 20px; /* Se queda fijo si haces scroll */
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Título del Carrito */
+.cart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 2px dashed #cbd5e0; /* Línea punteada tipo ticket */
+    padding-bottom: 15px;
+}
+.cart-header h3 { margin: 0; color: #2c3e50; font-size: 1.2rem; }
+.cart-count { background: #2c3e50; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; }
+
+/* Lista de Ítems (Scrollable) */
+.cart-items-container {
+    flex: 1; /* Empuja el total hacia abajo */
+    overflow-y: auto;
+    max-height: 400px;
+    padding-right: 5px; /* Espacio para scrollbar */
+}
+
+/* --- TARJETA DE ÍTEM INDIVIDUAL --- */
+.cart-item {
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s;
+    border-left: 4px solid #3498db; /* Borde azul indicador */
+}
+
+.cart-item:hover { transform: translateX(3px); }
+
+/* Detalles del ítem */
+.item-info { display: flex; flex-direction: column; }
+.item-type { font-weight: bold; font-size: 0.9rem; color: #2d3436; }
+.item-desc { font-size: 0.75rem; color: #95a5a6; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.item-price { font-weight: bold; color: #2d3436; font-size: 1rem; }
+
+/* Botón Eliminar (Basurero) */
+.btn-delete-item {
+    background: #ffebee;
+    color: #e74c3c;
+    border: none;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: all 0.2s;
+}
+.btn-delete-item:hover { background: #e74c3c; color: white; }
+
+/* --- ZONA DE TOTALES (ABAJO) --- */
+.cart-footer {
+    margin-top: 20px;
+    border-top: 2px dashed #cbd5e0;
+    padding-top: 20px;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.total-label { font-size: 1.1rem; color: #7f8c8d; }
+.total-amount { font-size: 1.8rem; font-weight: 800; color: #2c3e50; }
+
+/* Botón Procesar Gigante */
+.btn-process {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
+    transition: transform 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.btn-process:hover { transform: translateY(-2px); filter: brightness(1.1); }
+.btn-process:active { transform: translateY(0); }
+/* Asegura que el contenedor ponga los paneles uno al lado del otro */
+.pos-container {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+.panel-izquierdo {
+    flex: 1.5; /* El formulario ocupa el 60% */
+}
+
+.panel-derecho {
+    flex: 1;   /* El carrito ocupa el 40% */
+}
+
+/* Responsive: En celulares, uno debajo del otro */
+@media (max-width: 768px) {
+    .pos-container { flex-direction: column; }
+    .panel-derecho { width: 100%; }
+}
