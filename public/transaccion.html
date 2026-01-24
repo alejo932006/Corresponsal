@@ -105,71 +105,82 @@
     
                 </div>
                 
-                <div class="card-glass" style="box-shadow: none; padding: 0;">
-                    <header class="card-header" style="margin-bottom: 20px;">
-                        <div class="toggle-tipo" style="display:flex; gap:10px; width:100%;">
-                            <label class="switch-label" style="flex:1;">
-                                <input type="radio" name="categoria" value="RECAUDO" checked>
-                                <span class="btn-switch btn-ingreso" style="display:block; text-align:center; padding:12px; border-radius:8px; border:2px solid #e2e8f0; cursor:pointer; font-weight:bold;">
-                                    📥 INGRESO (Recaudo)
-                                </span>
-                            </label>
-                            <label class="switch-label" style="flex:1;">
-                                <input type="radio" name="categoria" value="TESORERIA">
-                                <span class="btn-switch btn-egreso" style="display:block; text-align:center; padding:12px; border-radius:8px; border:2px solid #e2e8f0; cursor:pointer; font-weight:bold;">
-                                    📤 SALIDA (Retiro)
-                                </span>
-                            </label>
-                        </div>
-                    </header>
-        
-                    <form id="formTransaccion" novalidate onsubmit="event.preventDefault()">
-                        
-                        <div class="form-section-inner" style="margin-bottom:20px;">
-                            <label class="label-sub" style="font-weight:bold; color:#2c3e50; display:block; margin-bottom:10px;">Seleccione Entidad</label>
-                            <div id="gridBancos" class="grid-bancos" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap:10px;">
-                                </div>
-                            <input type="hidden" id="selectBanco" required>
-                        </div>
-        
-                        <div id="groupTipo" class="animate-slide-down" style="display:none; margin-bottom:20px;">
-                            <label class="label-sub" style="font-weight:bold;">Tipo de Transacción</label>
-                            <select id="selectTipo" class="input-std full-width" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;"></select>
-                        </div>
-        
-                        <div class="highlight-box" style="background:#f8f9fa; padding:20px; border-radius:12px; text-align:center; margin-bottom:20px; border:1px solid #e9ecef;">
-                            <label style="color:#7f8c8d; font-size:0.9rem; letter-spacing:1px;">MONTO A PROCESAR</label>
-                            <div class="input-wrapper-money" style="position:relative; max-width:250px; margin:0 auto;">
-                                <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:1.5rem; color:#2c3e50;">$</span>
-                                <input type="text" id="inputMontoVisual" class="input-big-money" placeholder="0" autocomplete="off" 
-                                    style="width:100%; font-size:2rem; font-weight:bold; border:none; background:transparent; text-align:center; color:#2c3e50; outline:none;">
-                            </div>
-                            <input type="hidden" id="inputMonto"> 
-                        </div>
-        
-                        <div class="form-row" style="display:flex; gap:40px;">
-                            <div class="col-desc" style="flex:1;">
-                                <input type="text" id="inputDesc" class="input-std" placeholder="Referencia / Descripción (Opcional)"
-                                    style="width:100%; padding:15px; border-radius:8px; border:2px solid #e2e8f0;">
-                            </div>
-                            <div class="col-btn">
-                                <button type="button" id="btnAgregar" class="btn-action-add" 
-                                    style="background:#2c3e50; color:white; border:none; padding:15px 25px; border-radius:8px; font-weight:bold; cursor:pointer; height:100%;">
-                                    ⬇️ AGREGAR
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+                <div class="form-section-inner" style="margin-bottom:8px;">
+                    <label class="label-sub" style="margin-bottom:4px;">1. Seleccione Entidad</label>
+                    <div id="gridBancos" class="grid-bancos" style="margin-bottom:0;"></div> 
+                    <input type="hidden" id="selectBanco" required>
                 </div>
-        
-                <div class="recent-history" style="margin-top:30px; border-top:1px dashed #ccc; padding-top:20px;">
-                    <header class="card-header-small" style="display:flex; justify-content:space-between; margin-bottom:15px;">
-                        <h4 style="margin:0; color:#7f8c8d;">📒 Historial Reciente</h4>
-                        <span id="contadorMovimientos" style="background:#eee; padding:2px 8px; border-radius:10px; font-size:0.8rem;">0</span>
-                    </header>
-                    <div id="listaMovimientos" class="mini-feed">
-                        <div class="empty-feed" style="color:#aaa; font-style:italic;">Cargando historial...</div>
+                
+                <div class="form-section-inner" style="margin-bottom:10px;">
+                    <label class="label-sub" style="margin-bottom:4px;">2. Tipo de Operación</label>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                        <button type="button" onclick="abrirModalTipos('RECAUDO')" class="btn-big-trigger btn-ingreso-trigger" style="padding: 12px;">
+                            <span class="icon-trigger" style="width:40px; height:40px; font-size:1.5rem;">📥</span>
+                            <div>
+                                <span class="title-trigger" style="font-size:1rem;">INGRESO</span>
+                                <small class="desc-trigger" style="font-size:0.75rem;">Depósitos...</small>
+                            </div>
+                        </button>
+                
+                        <button type="button" onclick="abrirModalTipos('TESORERIA')" class="btn-big-trigger btn-egreso-trigger" style="padding: 12px;">
+                            <span class="icon-trigger" style="width:40px; height:40px; font-size:1.5rem;">📤</span>
+                            <div>
+                                <span class="title-trigger" style="font-size:1rem;">SALIDA</span>
+                                <small class="desc-trigger" style="font-size:0.75rem;">Retiros...</small>
+                            </div>
+                        </button>
                     </div>
+                
+                    <div id="displaySeleccion" class="selection-display" style="display:none; padding: 10px; margin-top: 5px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="iconSeleccion" style="font-size:1.5rem;">✅</span>
+                            <div>
+                                <span style="font-size:0.7rem; color:#94a3b8; font-weight:bold;">SELECCIONADO:</span>
+                                <h4 id="txtSeleccion" style="margin:0; color:#2c3e50; font-size:1rem;">Ninguna</h4>
+                            </div>
+                        </div>
+                        <button type="button" onclick="limpiarSeleccionTipo()" class="btn-mini-clear" style="font-size:0.75rem; padding: 4px 8px;">Cambiar</button>
+                    </div>
+                
+                    <input type="hidden" id="inputTipoSeleccionado">
+                    <input type="hidden" id="inputCategoriaSeleccionada">
+                </div>
+                
+                <form id="formTransaccion" novalidate onsubmit="event.preventDefault()">
+                    
+                    <div class="highlight-box" style="margin-bottom:10px; padding: 10px;">
+                        <label style="color:#7f8c8d; font-size:0.8rem; letter-spacing:1px; margin-bottom:0;">MONTO A PROCESAR</label>
+                        <div class="input-wrapper-money">
+                            <span class="currency-symbol" style="font-size:1.5rem;">$</span>
+                            <input type="text" id="inputMontoVisual" class="input-big-money" placeholder="0" autocomplete="off" style="font-size:1.8rem;">
+                        </div>
+                        <input type="hidden" id="inputMonto"> 
+                    </div>
+                
+                    <div class="form-row">
+                        <div class="col-desc">
+                            <input type="text" id="inputDesc" class="input-std" placeholder="Referencia / Descripción (Opcional)" style="padding: 10px;">
+                        </div>
+                        <div class="col-btn">
+                            <button type="button" id="btnAgregar" class="btn-action-add" style="padding: 0 20px;">
+                                ⬇️ AGREGAR
+                            </button>
+                        </div>
+                    </div>
+                </form>
+        
+                <div style="margin-top: 20px; border-top: 1px dashed #e2e8f0; padding-top: 20px;">
+                    <button type="button" onclick="abrirModalHistorial()" class="btn-history-trigger">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="background:#e0f2fe; color:#0369a1; padding:8px; border-radius:8px;">📜</span>
+                            <div style="text-align:left;">
+                                <span style="display:block; font-weight:bold; color:#334155; font-size:0.9rem;">Historial de Hoy</span>
+                                <small id="lblResumenHistorial" style="color:#94a3b8; font-size:0.75rem;">0 movimientos</small>
+                            </div>
+                        </div>
+                        <span style="color:#cbd5e1;">➔</span>
+                    </button>
                 </div>
     
             </section>
@@ -260,6 +271,82 @@
                 <button id="btnConfirmarTodo" class="btn-confirm-all">
                     ✅ CONFIRMAR Y GUARDAR
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalTipos" class="modal-overlay" style="display:none; z-index: 3000;">
+        <div class="modal-glass modal-wide">
+            <div class="modal-header">
+                <h2 id="tituloModalTipos">Seleccione una opción</h2>
+                <button onclick="cerrarModalTipos()" class="btn-close">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <div id="gridOpcionesTipos" class="grid-tipos-modal"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalHistorial" class="modal-overlay" style="display:none; z-index: 3100;">
+        <div class="modal-glass modal-wide" style="max-width: 700px;">
+            <div class="modal-header" style="border-bottom: 1px solid #f1f5f9; padding-bottom:15px;">
+                <div>
+                    <h2 style="margin:0; color:#1e293b; font-size:1.3rem;">📜 Movimientos del Día</h2>
+                    <small style="color:#64748b;">Solo se muestran transacciones de tu sesión actual</small>
+                </div>
+                <button onclick="cerrarModalHistorial()" class="btn-close">×</button>
+            </div>
+            
+            <div class="modal-body" style="padding: 0;">
+    
+                <div class="filter-container" style="padding: 15px 20px; background: #fff; border-bottom: 1px solid #f1f5f9; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div class="input-icon-wrapper" style="flex: 2;">
+                        <span class="icon-input">🔍</span>
+                        <input type="text" id="filtroTipo" class="input-filter-pro" placeholder="Buscar por Tipo o Descripción..." onkeyup="filtrarHistorial()">
+                    </div>
+                    
+                    <div class="input-icon-wrapper" style="flex: 1;">
+                        <span class="icon-input">💲</span>
+                        <input type="number" id="filtroMonto" class="input-filter-pro" placeholder="Monto" onkeyup="filtrarHistorial()">
+                    </div>
+            
+                    <div class="input-icon-wrapper" style="flex: 1;">
+                        <span class="icon-input">⏰</span>
+                        <input type="text" id="filtroHora" class="input-filter-pro" placeholder="Hora (ej: 14:30)" onkeyup="filtrarHistorial()">
+                    </div>
+                </div>
+            
+                <div class="history-table-header">
+                    <span>Hora</span>
+                    <span>Banco / Detalle</span>
+                    <span style="text-align:right;">Monto</span>
+                    <span style="text-align:center;">Acción</span>
+                </div>
+    
+                <div id="listaMovimientosModal" class="history-list-container">
+                    <div class="empty-state-modal">Cargando...</div>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="padding:15px; background:#f8fafc; border-top:1px solid #e2e8f0; text-align:right; border-radius: 0 0 20px 20px;">
+                <button onclick="cerrarModalHistorial()" class="btn-cancel" style="padding:10px 20px; font-size:0.9rem;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalAuth" class="modal-overlay" style="display:none; align-items:center; justify-content:center; z-index: 2000;">
+        <div class="modal-glass" style="max-width:350px; padding:25px; text-align:center;">
+            <h3 style="margin-top:0; color:#2c3e50;">🔒 Autorización Requerida</h3>
+            <p style="color:#7f8c8d; font-size:0.9rem;">Un administrador debe ingresar su contraseña para continuar.</p>
+            
+            <input type="password" id="inputAdminPass" class="input-std" 
+                style="width:90%; padding:12px; border-radius:8px; border:2px solid #bdc3c7; font-size:1.1rem; text-align:center;" 
+                placeholder="Contraseña Admin">
+                
+            <div style="display:flex; justify-content:center; gap:10px; margin-top:20px;">
+                <button id="btnCancelAuth" style="background:#95a5a6; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">Cancelar</button>
+                <button id="btnConfirmAuth" style="background:#2c3e50; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">Verificar</button>
             </div>
         </div>
     </div>

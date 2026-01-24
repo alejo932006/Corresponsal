@@ -264,3 +264,19 @@ async function resetearBaseDatos() {
         btn.disabled = false;
     }
 }
+
+const btnLogout = document.getElementById('btnLogout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', (e) => {
+            e.preventDefault(); // Evita que la página recargue o salte
+            
+            if(confirm("¿Seguro que deseas cerrar sesión?")) {
+                // 1. Borramos las credenciales guardadas
+                localStorage.removeItem('usuario_nombre');
+                localStorage.removeItem('usuario_rol');
+                
+                // 2. Redirigimos al login
+                window.location.href = 'login.html';
+            }
+        });
+    }

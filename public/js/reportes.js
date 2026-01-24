@@ -81,9 +81,16 @@ async function generarReporte() {
                 const colorMonto = esSalida ? '#e74c3c' : '#27ae60';
                 const signo = esSalida ? '- ' : '+ ';
 
+                // --- CAMBIO VISUAL AQUÍ ---
+                // Agregamos <small> con el nombre del usuario
                 tr.innerHTML = `
-                    <td style="padding:12px; border-bottom:1px solid #eee;">${mov.fecha}</td>
-                    <td style="border-bottom:1px solid #eee;"><strong>${mov.tipo}</strong></td>
+                    <td style="padding:12px; border-bottom:1px solid #eee;">
+                        ${mov.fecha}
+                    </td>
+                    <td style="border-bottom:1px solid #eee;">
+                        <strong>${mov.tipo}</strong>
+                        <div style="font-size:0.75rem; color:#f39c12; font-weight:bold;">👤 ${mov.usuario}</div>
+                    </td>
                     <td style="border-bottom:1px solid #eee; color:#555;">${mov.descripcion}</td>
                     <td style="text-align:right; padding:12px; border-bottom:1px solid #eee; color:${colorMonto}; font-weight:bold;">
                         ${signo}${formato.format(mov.monto)}

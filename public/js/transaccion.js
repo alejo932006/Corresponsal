@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarBaseCaja();        // Dinero en efectivo y Seguridad (Caja Abierta)
     cargarMisMovimientos();  // Historial del día (Tabla de abajo)
     cargarSaldosBancos();
-    aplicarPermisosRol();
+    // aplicarPermisosRol();
     // 3. Configurar Inputs de Dinero (Formato visual)
     configurarInputMoneda('inputMontoVisual', 'inputMonto');
     configurarInputMoneda('inputPagaCon', 'inputPagaConHidden');
@@ -65,33 +65,39 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 
 function agregarAlCarrito() {
-    // 1. VALIDACIÓN ESTRICTA DE BANCO (NUEVO)
+    
+    // 1. VALIDACIÓN BANCO
     const bancoId = document.getElementById('selectBanco').value;
-    if (!bancoId || bancoId === "") {
-        alert("⚠️ ¡Alto ahí!\n\nDebes seleccionar un BANCO (haz clic en el logo del banco).");
-        return; // Detiene la función, no agrega nada.
+    if (!bancoId) return alert("Seleccione un Banco");
+
+    // 2. VALIDACIÓN TIPO (NUEVA LÓGICA MODAL)
+    const tipoId = document.getElementById('inputTipoSeleccionado').value;
+    const categoria = document.getElementById('inputCategoriaSeleccionada').value;
+
+    if (!tipoId) {
+        alert("⚠️ Por favor selecciona un TIPO DE OPERACIÓN (Botones Ingreso/Salida).");
+        return;
     }
 
-    // 2. Validar Monto
+    // 3. VALIDACIÓN MONTO
     const monto = parseInt(document.getElementById('inputMonto').value);
     if (!monto || monto <= 0) {
-        alert("⚠️ Por favor ingresa un monto válido.");
+        alert("⚠️ Ingresa un monto válido.");
         document.getElementById('inputMontoVisual').focus();
         return;
     }
 
-    // 3. Obtener el resto de datos
+    // --- Obtener Nombres para mostrar en carrito ---
     const bancoElemento = document.querySelector(`.bank-option[data-id="${bancoId}"]`);
     const bancoNombre = bancoElemento ? bancoElemento.querySelector('.bank-name').innerText : 'Banco';
     
-    const tipoSelect = document.getElementById('selectTipo');
-    const tipoId = tipoSelect.value;
-    const tipoNombre = tipoSelect.options[tipoSelect.selectedIndex].text;
+    // Buscar nombre del tipo en el array global
+    const tipoObj = todosLosTipos.find(t => t.id == tipoId);
+    const tipoNombre = tipoObj ? tipoObj.nombre : 'Operación';
     
-    const categoria = document.querySelector('input[name="categoria"]:checked').value;
     const desc = document.getElementById('inputDesc').value;
 
-    // 4. Crear objeto
+    // 4. CREAR OBJETO
     const operacion = {
         id_temp: Date.now(),
         banco_id: bancoId,
@@ -103,12 +109,18 @@ function agregarAlCarrito() {
         descripcion: desc
     };
 
-    // 5. Agregar y limpiar
+    // 5. AGREGAR Y LIMPIAR
     carritoCliente.push(operacion);
     
+    // Limpieza de campos visuales
     document.getElementById('inputMonto').value = '';
     document.getElementById('inputMontoVisual').value = '';
     document.getElementById('inputDesc').value = '';
+    
+    // Limpieza de la selección del tipo (usando tu función auxiliar)
+    limpiarSeleccionTipo(); 
+
+    // Enfocar de nuevo el monto para agilidad
     document.getElementById('inputMontoVisual').focus(); 
 
     renderizarCarrito();
@@ -119,20 +131,16 @@ function renderizarCarrito() {
     const lblTotal = document.getElementById('lblTotalCliente');
     const btnFinalizar = document.getElementById('btnFinalizar');
     
-    // Elemento opcional: contador de ítems en el header del carrito (si lo tienes en el HTML)
-    // const badgeCount = document.querySelector('.cart-header .cart-count'); 
-
     contenedor.innerHTML = '';
     totalGlobal = 0;
 
-    // Formateador de moneda (Pesos Colombianos sin decimales)
     const formato = new Intl.NumberFormat('es-CO', { 
         style: 'currency', 
         currency: 'COP', 
         maximumFractionDigits: 0 
     });
 
-    // --- 1. ESTADO VACÍO (EMPTY STATE) ---
+    // --- 1. ESTADO VACÍO ---
     if (carritoCliente.length === 0) {
         contenedor.innerHTML = `
             <div class="empty-state" style="text-align:center; color:#95a5a6; margin-top:60px;">
@@ -141,10 +149,9 @@ function renderizarCarrito() {
                 <small>Agrega operaciones desde el panel izquierdo</small>
             </div>
         `;
-        
         lblTotal.textContent = '$ 0';
         btnFinalizar.disabled = true;
-        btnFinalizar.style.opacity = '0.6'; // Efecto visual de deshabilitado
+        btnFinalizar.style.opacity = '0.6';
         btnFinalizar.style.cursor = 'not-allowed';
         return;
     }
@@ -152,9 +159,15 @@ function renderizarCarrito() {
     // --- 2. GENERAR ÍTEMS ---
     carritoCliente.forEach((op, index) => {
         
-        // A. Lógica de Suma/Resta
-        const esIngreso = op.categoria === 'RECAUDO'; // Asumo que 'RECAUDO' es entrada de dinero
+        // === LA CORRECCIÓN MÁGICA AQUÍ ===
+        // Detectamos si el nombre incluye "Fondeo" o "Entrada" para tratarlo como positivo
+        const nombreOp = op.tipo_nombre.toLowerCase();
+        const esFondeo = nombreOp.includes('fondeo') || nombreOp.includes('entrada tesorería');
+
+        // Es Ingreso si la categoría es RECAUDO ... O ... si es este caso especial de Fondeo
+        const esIngreso = op.categoria === 'RECAUDO' || esFondeo; 
         
+        // A. Lógica de Suma/Resta
         if (esIngreso) {
             totalGlobal += parseFloat(op.monto);
         } else {
@@ -165,13 +178,15 @@ function renderizarCarrito() {
         const colorBorde = esIngreso ? '#2ecc71' : '#e74c3c'; // Verde o Rojo
         const signo = esIngreso ? '+' : '-';
         const colorTexto = esIngreso ? '#27ae60' : '#c0392b';
-        const textoCategoria = esIngreso ? 'INGRESO' : 'RETIRO';
+        
+        // Etiqueta bonita
+        let textoCategoria = op.categoria === 'RECAUDO' ? 'INGRESO' : 'RETIRO';
+        if (esFondeo) textoCategoria = 'FONDEO (Entrada)'; // Etiqueta especial
 
         // C. Crear la Tarjeta HTML
         const item = document.createElement('div');
-        item.className = 'cart-item'; // Usamos la clase CSS nueva
+        item.className = 'cart-item'; 
         
-        // Aplicamos estilos base en línea por seguridad (para garantizar el look moderno)
         item.style.cssText = `
             background: white;
             padding: 15px;
@@ -181,7 +196,7 @@ function renderizarCarrito() {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-left: 5px solid ${colorBorde}; /* La línea de color lateral */
+            border-left: 5px solid ${colorBorde};
             transition: transform 0.2s;
         `;
 
@@ -201,7 +216,7 @@ function renderizarCarrito() {
                     <div style="font-weight:800; font-size:1.1rem; color:${colorTexto};">
                         ${signo} ${formato.format(op.monto)}
                     </div>
-                    <small style="font-size:0.65rem; color:#aaa; font-weight:bold;">${textoCategoria}</small>
+                    <small style="font-size:0.65rem; color:#aaa; font-weight:bold; text-transform:uppercase;">${textoCategoria}</small>
                 </div>
                 
                 <button onclick="eliminarDelCarrito(${index})" class="btn-delete-item" title="Eliminar del carrito" style="
@@ -230,6 +245,7 @@ function renderizarCarrito() {
     btnFinalizar.style.opacity = '1';
     btnFinalizar.style.cursor = 'pointer';
 }
+
 
 function eliminarDelCarrito(index) {
     // Eliminar del array
@@ -317,9 +333,9 @@ async function guardarTodasLasOperaciones() {
         // Resetear formulario completo
         document.getElementById('formTransaccion').reset();
         document.querySelectorAll('.bank-option').forEach(b => b.classList.remove('selected'));
-        document.getElementById('groupTipo').style.display = 'none';
 
         // Actualizar datos de fondo
+        limpiarSeleccionTipo();
         cargarBaseCaja();
         cargarMisMovimientos();
 
@@ -342,7 +358,7 @@ async function cargarOpciones() {
         const data = await res.json();
 
         if (data.success) {
-            // A. CARGAR BANCOS (IGUAL QUE ANTES)
+            // 1. CARGAR BANCOS (Igual que siempre)
             const grid = document.getElementById('gridBancos');
             const hiddenInput = document.getElementById('selectBanco');
             grid.innerHTML = '';
@@ -350,9 +366,8 @@ async function cargarOpciones() {
             data.bancos.forEach(banco => {
                 const div = document.createElement('div');
                 div.className = 'bank-option';
-                div.setAttribute('data-id', banco.id); 
+                div.setAttribute('data-id', banco.id);
                 
-                // Iconos
                 let icon = '🏦';
                 const n = banco.nombre.toLowerCase();
                 if(n.includes('bancolombia')) icon = '🟨';
@@ -360,33 +375,69 @@ async function cargarOpciones() {
                 else if(n.includes('daviplata')) icon = '🔴';
                 else if(n.includes('bogota')) icon = '🔵';
 
-                div.innerHTML = `
-                    <span class="bank-icon">${icon}</span>
-                    <span class="bank-name">${banco.nombre}</span>
-                `;
+                div.innerHTML = `<span class="bank-icon">${icon}</span><span class="bank-name">${banco.nombre}</span>`;
 
                 div.addEventListener('click', () => {
                     document.querySelectorAll('.bank-option').forEach(b => b.classList.remove('selected'));
                     div.classList.add('selected');
                     hiddenInput.value = banco.id;
                 });
-
                 grid.appendChild(div);
             });
 
-            // B. GUARDAR TIPOS Y FILTRAR INMEDIATAMENTE (ESTO ES LO NUEVO)
+            // 2. GUARDAR TIPOS EN MEMORIA (Ya no renderizamos select ni radios)
             todosLosTipos = data.tipos;
-
-            // Buscamos cuál radio está marcado por defecto (generalmente RECAUDO)
-            const radioActivo = document.querySelector('input[name="categoria"]:checked');
-            if (radioActivo) {
-                // Forzamos la carga de la lista
-                filtrarTipos(radioActivo.value);
-            }
         }
-    } catch (error) {
-        console.error('Error cargando opciones:', error);
+    } catch (error) { console.error(error); }
+}
+
+// NUEVA FUNCIÓN AUXILIAR PARA DIBUJAR LOS BOTONES
+function renderizarBotonesTipos() {
+    const contenedorIngreso = document.getElementById('listaTiposIngreso');
+    const contenedorEgreso = document.getElementById('listaTiposEgreso');
+    
+    // Limpiar contenedores
+    contenedorIngreso.innerHTML = '';
+    contenedorEgreso.innerHTML = '';
+
+    todosLosTipos.forEach(tipo => {
+        const btn = document.createElement('div'); // Usamos div para estilo personalizado
+        btn.className = 'btn-tipo-opcion';
+        btn.textContent = tipo.nombre; // Ej: "Depósito", "Retiro"
+        
+        // Evento Click
+        btn.addEventListener('click', () => {
+            seleccionarTipoVisual(btn, tipo);
+        });
+
+        // Clasificar en columna correcta según categoría (RECAUDO vs TESORERIA)
+        if (tipo.categoria === 'RECAUDO') {
+            btn.innerHTML = `<span>⬇️</span> ${tipo.nombre}`;
+            contenedorIngreso.appendChild(btn);
+        } else {
+            btn.innerHTML = `<span>⬆️</span> ${tipo.nombre}`;
+            contenedorEgreso.appendChild(btn);
+        }
+    });
+}
+
+// NUEVA FUNCIÓN PARA MANEJAR EL CLICK EN UN TIPO
+function seleccionarTipoVisual(elementoBtn, tipoObj) {
+    // 1. Quitar selección previa visual
+    document.querySelectorAll('.btn-tipo-opcion').forEach(b => {
+        b.classList.remove('sel-ingreso', 'sel-egreso');
+    });
+
+    // 2. Marcar visualmente el actual
+    if (tipoObj.categoria === 'RECAUDO') {
+        elementoBtn.classList.add('sel-ingreso');
+    } else {
+        elementoBtn.classList.add('sel-egreso');
     }
+
+    // 3. Guardar datos en los inputs ocultos
+    document.getElementById('inputTipoSeleccionado').value = tipoObj.id;
+    document.getElementById('inputCategoriaSeleccionada').value = tipoObj.categoria;
 }
 
 function filtrarTipos(categoria) {
@@ -444,7 +495,7 @@ async function cargarBaseCaja() {
         if (data.success) {
             // BLOQUEO DE SEGURIDAD
             if (!data.cajaAbierta) {
-                alert("⚠️ ATENCIÓN: No has realizado la APERTURA DE CAJA hoy.\n\nEl sistema te redirigirá para que ingreses la base inicial.");
+                alert("⚠️ ATENCIÓN: No has realizado la APERTURA DE CAJA hoy.\n\nEl sistema te redirigirá.");
                 window.location.href = 'caja.html';
                 return;
             }
@@ -456,63 +507,17 @@ async function cargarBaseCaja() {
             const txtBase = document.getElementById('txtBaseActual');
             if(txtBase) {
                 txtBase.textContent = formato.format(data.base);
-                document.getElementById('txtBaseInicial').textContent = `Base Inicial: ${formato.format(data.baseInicial)}`;
+                
+                // CORRECCIÓN: Verificamos si existe 'txtBaseInicial' antes de usarlo
+                const txtInicial = document.getElementById('txtBaseInicial');
+                if (txtInicial) {
+                    txtInicial.textContent = `Base Inicial: ${formato.format(data.baseInicial)}`;
+                }
             }
         }
     } catch (error) { console.error(error); }
 }
 
-async function cargarMisMovimientos() {
-    const usuario = localStorage.getItem('usuario_nombre');
-    const container = document.getElementById('listaMovimientos');
-    // Si no existe el contenedor (porque cambiamos el HTML), no hacemos nada
-    if(!container) return;
-
-    try {
-        const res = await fetch(`/api/mis-movimientos?usuario=${usuario}`);
-        const data = await res.json();
-
-        if (data.success) {
-            container.innerHTML = ''; 
-            const formato = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
-            
-            if (data.movimientos.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding: 20px; color: #a0aec0;">Sin movimientos hoy</div>';
-                return;
-            }
-
-            data.movimientos.forEach(mov => {
-                let icon = '📄';
-                if(mov.tipo.includes('Nequi')) icon = '📱';
-                else if(mov.tipo.includes('Retiro')) icon = '💸';
-
-                const div = document.createElement('div');
-                div.className = 'feed-item';
-                div.innerHTML = `
-                    <div class="feed-left">
-                        <span class="feed-time">${mov.hora}</span>
-                        <div class="feed-info">
-                            <h4>${icon} ${mov.tipo}</h4>
-                            <p>${mov.descripcion}</p>
-                        </div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div class="feed-amount">${formato.format(mov.monto)}</div>
-                        <div style="margin-top:5px;">
-                            <button onclick="editarTx(${mov.id}, '${mov.descripcion}', ${mov.monto})" style="cursor:pointer; border:none; color:#3498db;" title="Editar">✏️</button>
-                            <button onclick="eliminarTx(${mov.id})" style="cursor:pointer; border:none; color:red;" title="Eliminar">🗑️</button>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-            
-            // Actualizar contadores si existen
-            const badge = document.getElementById('contadorMovimientos');
-            if(badge) badge.textContent = data.movimientos.length;
-        }
-    } catch (error) { console.error("Error historial:", error); }
-}
 
 // Funciones de Edición/Eliminación (Se mantienen igual)
 async function eliminarTx(id) {
@@ -550,7 +555,12 @@ async function editarTx(id, descActual, montoActual) {
 
 // Ajuste de Base (Se mantiene)
 async function ajustarBase() {
-    const realStr = prompt(`El sistema dice: $${baseActual}\n\n¿Cuánto dinero hay FÍSICAMENTE?`);
+    // 1. BLOQUEO DE SEGURIDAD
+    const autorizado = await solicitarAutorizacionAdmin();
+    if (!autorizado) return; // Si cancela o falla, no hacemos nada.
+
+    // 2. Lógica Original (Se ejecuta solo si autorizado es true)
+    const realStr = prompt(`🔓 MODO ADMIN ACTIVO\n\nEl sistema dice: $${baseActual}\n\n¿Cuánto dinero hay FÍSICAMENTE?`);
     if (!realStr) return;
     const real = parseFloat(realStr);
     const diferencia = real - baseActual;
@@ -633,10 +643,14 @@ async function cargarSaldosBancos() {
 }
 
 async function ajustarCupoBanco(bancoId, nombreBanco, saldoActual) {
-    // 1. Preguntar el valor REAL
-    const nuevoValorStr = prompt(`Ajuste de Cupo - ${nombreBanco}\n\nEl sistema dice: $${saldoActual}\n\n¿Cuánto dinero hay REALMENTE en la plataforma?`);
-    
-    if (nuevoValorStr === null) return; // Cancelado
+    // 1. BLOQUEO DE SEGURIDAD
+    const autorizado = await solicitarAutorizacionAdmin();
+    if (!autorizado) return;
+
+    // 2. Lógica Original
+    const nuevoValorStr = prompt(`🔓 MODO ADMIN ACTIVO - ${nombreBanco}\n\nEl sistema dice: $${saldoActual}\n\n¿Cuánto dinero hay REALMENTE en la plataforma?`);
+    // ... resto de tu código igual ...
+    if (nuevoValorStr === null) return;
     
     const nuevoValor = parseInt(nuevoValorStr.replace(/\D/g, '')); // Limpiar símbolos
     if (isNaN(nuevoValor)) return alert("Por favor ingresa un número válido.");
@@ -725,3 +739,356 @@ function aplicarPermisosRol() {
         if(linkUsuarios) linkUsuarios.style.display = 'none';
     }
 }
+
+// --- LÓGICA DEL MODAL DE SELECCIÓN ---
+
+function abrirModalTipos(categoria) {
+    const modal = document.getElementById('modalTipos');
+    const contenedor = document.getElementById('gridOpcionesTipos');
+    const titulo = document.getElementById('tituloModalTipos');
+    
+    // Configurar título y color según categoría
+    if (categoria === 'RECAUDO') {
+        titulo.textContent = '📥 Seleccione tipo de Ingreso';
+        titulo.style.color = '#166534';
+    } else {
+        titulo.textContent = '📤 Seleccione tipo de Retiro';
+        titulo.style.color = '#991b1b';
+    }
+
+    // Filtrar y renderizar botones
+    contenedor.innerHTML = '';
+    const tiposFiltrados = todosLosTipos.filter(t => t.categoria === categoria);
+
+    if(tiposFiltrados.length === 0) {
+        contenedor.innerHTML = '<p style="text-align:center; width:100%; color:#94a3b8;">No hay opciones disponibles.</p>';
+    }
+
+    tiposFiltrados.forEach(tipo => {
+        const btn = document.createElement('div');
+        btn.className = 'btn-modal-option';
+        
+        // Emoji por defecto si no tienes iconos específicos
+        let emoji = categoria === 'RECAUDO' ? '💰' : '💸';
+        
+        btn.innerHTML = `
+            <span class="emoji">${emoji}</span>
+            <span>${tipo.nombre}</span>
+        `;
+        
+        btn.onclick = () => seleccionarTipoDesdeModal(tipo);
+        contenedor.appendChild(btn);
+    });
+
+    modal.style.display = 'flex';
+}
+
+function cerrarModalTipos() {
+    document.getElementById('modalTipos').style.display = 'none';
+}
+
+function seleccionarTipoDesdeModal(tipo) {
+    // 1. Guardar valores
+    document.getElementById('inputTipoSeleccionado').value = tipo.id;
+    document.getElementById('inputCategoriaSeleccionada').value = tipo.categoria;
+
+    // 2. Actualizar UI (Mostrar selección)
+    document.getElementById('displaySeleccion').style.display = 'flex';
+    document.getElementById('txtSeleccion').textContent = tipo.nombre;
+    
+    // Icono y color visual
+    const iconDisplay = document.getElementById('iconSeleccion');
+    if (tipo.categoria === 'RECAUDO') {
+        iconDisplay.textContent = '📥';
+        document.getElementById('displaySeleccion').style.background = '#f0fdf4'; // Verde claro
+        document.getElementById('displaySeleccion').style.borderColor = '#bbf7d0';
+    } else {
+        iconDisplay.textContent = '📤';
+        document.getElementById('displaySeleccion').style.background = '#fef2f2'; // Rojo claro
+        document.getElementById('displaySeleccion').style.borderColor = '#fecaca';
+    }
+
+    // 3. Cerrar modal y enfocar monto
+    cerrarModalTipos();
+    document.getElementById('inputMontoVisual').focus();
+}
+
+function limpiarSeleccionTipo() {
+    document.getElementById('inputTipoSeleccionado').value = '';
+    document.getElementById('inputCategoriaSeleccionada').value = '';
+    document.getElementById('displaySeleccion').style.display = 'none';
+}
+
+// ==========================================
+// NUEVA LÓGICA DE HISTORIAL (MODAL PRO)
+// ==========================================
+
+function abrirModalHistorial() {
+    document.getElementById('modalHistorial').style.display = 'flex';
+}
+
+function cerrarModalHistorial() {
+    document.getElementById('modalHistorial').style.display = 'none';
+}
+
+async function cargarMisMovimientos() {
+    const usuario = localStorage.getItem('usuario_nombre');
+    const container = document.getElementById('listaMovimientosModal'); // ID NUEVO
+    const lblResumen = document.getElementById('lblResumenHistorial'); // Etiqueta del botón
+
+    try {
+        const res = await fetch(`/api/mis-movimientos?usuario=${usuario}`);
+        const data = await res.json();
+
+        if (data.success) {
+            container.innerHTML = ''; 
+            const formato = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
+            
+            // 1. Actualizar el Botón Resumen
+            const cantidad = data.movimientos.length;
+            if (lblResumen) {
+                lblResumen.textContent = cantidad === 0 ? "Sin movimientos hoy" : `${cantidad} transacciones hoy`;
+            }
+
+            // 2. Estado Vacío
+            if (cantidad === 0) {
+                container.innerHTML = `
+                    <div class="empty-state-modal">
+                        <span style="font-size:2rem; display:block; margin-bottom:10px;">📭</span>
+                        No has realizado movimientos en esta sesión.
+                    </div>`;
+                return;
+            }
+
+            // 3. Renderizar filas PRO
+            data.movimientos.forEach(mov => {
+                // Determinar iconos y colores
+                let icon = '📄';
+                let claseColor = 'text-ingreso-pro'; // Por defecto verde
+                let signo = '+';
+
+                // Lógica simple para detectar si es salida (adaptar según tus tipos reales)
+                // Si el tipo dice "Retiro", "Salida", "Pago" o "Egreso"
+                const tipoLower = mov.tipo.toLowerCase();
+                if (tipoLower.includes('retiro') || tipoLower.includes('pago') || tipoLower.includes('salida') || tipoLower.includes('egreso')) {
+                    claseColor = 'text-egreso-pro'; // Rojo
+                    signo = '-';
+                    icon = '💸';
+                } else if (tipoLower.includes('nequi')) {
+                    icon = '📱';
+                }
+
+                const div = document.createElement('div');
+                div.className = 'history-row';
+                div.innerHTML = `
+                    <div class="h-time">${mov.hora}</div>
+                    
+                    <div class="h-desc">
+                        <h4>${icon} ${mov.tipo}</h4>
+                        <p>${mov.descripcion || 'Sin descripción'}</p>
+                    </div>
+                    
+                    <div class="h-amount ${claseColor}">
+                        ${signo} ${formato.format(mov.monto)}
+                    </div>
+                    
+                    <div class="h-actions">
+                        <button onclick="editarTx(${mov.id}, '${mov.descripcion}', ${mov.monto})" class="btn-icon-action btn-edit" title="Editar">✏️</button>
+                        <button onclick="eliminarTx(${mov.id})" class="btn-icon-action btn-trash" title="Eliminar">🗑️</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+    } catch (error) { 
+        console.error("Error historial:", error); 
+        if(container) container.innerHTML = '<div class="empty-state-modal" style="color:red">Error de conexión</div>';
+    }
+}
+
+// ==========================================
+// LÓGICA DE HISTORIAL CON FILTROS
+// ==========================================
+
+let historialCache = []; // Variable global para guardar los datos y filtrar rápido
+
+async function cargarMisMovimientos() {
+    const usuario = localStorage.getItem('usuario_nombre');
+    const lblResumen = document.getElementById('lblResumenHistorial');
+
+    try {
+        const res = await fetch(`/api/mis-movimientos?usuario=${usuario}`);
+        const data = await res.json();
+
+        if (data.success) {
+            // 1. Guardar en caché global
+            historialCache = data.movimientos;
+
+            // 2. Actualizar texto del botón principal
+            if (lblResumen) {
+                const count = historialCache.length;
+                lblResumen.textContent = count === 0 ? "Sin movimientos hoy" : `${count} transacciones hoy`;
+            }
+
+            // 3. Renderizar tabla completa inicialmente
+            renderizarHistorial(historialCache);
+        }
+    } catch (error) { 
+        console.error("Error historial:", error); 
+    }
+}
+
+// Nueva función que se encarga SOLO de dibujar la tabla
+// Función para dibujar la tabla del Historial (Modal)
+function renderizarHistorial(lista) {
+    const container = document.getElementById('listaMovimientosModal'); // La tabla del modal
+    if (!container) return;
+
+    container.innerHTML = '';
+    const formato = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
+
+    if (lista.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">No hay movimientos coinciden con la búsqueda.</div>';
+        return;
+    }
+
+    lista.forEach(mov => {
+        // 1. LÓGICA DE COLORES (Aquí está la clave)
+        // Usamos el campo 'afecta_caja' que agregamos al backend
+        const esIngreso = mov.afecta_caja == 1; 
+        
+        const colorMonto = esIngreso ? '#2ecc71' : '#e74c3c'; // Verde o Rojo
+        const signo = esIngreso ? '+ ' : '- ';
+        const estiloMonto = `color:${colorMonto}; font-weight:bold; text-align:right;`;
+
+        // 2. Crear fila
+        const item = document.createElement('div');
+        item.className = 'history-row'; // Asegúrate de tener CSS para esto o usa divs simples
+        item.style.cssText = "display:grid; grid-template-columns: 1fr 2fr 1fr 1fr; padding:10px; border-bottom:1px solid #eee; align-items:center;";
+
+        item.innerHTML = `
+            <span style="color:#7f8c8d; font-size:0.9rem;">${mov.hora}</span>
+            <div>
+                <strong style="color:#2c3e50;">${mov.tipo}</strong>
+                <div style="font-size:0.8rem; color:#f39c12;">👤 ${mov.usuario}</div>
+                <small style="color:#95a5a6;">${mov.descripcion || ''}</small>
+            </div>
+            <div style="${estiloMonto}">
+                ${signo}${formato.format(mov.monto)}
+            </div>
+             <div style="text-align:center;">
+                ${ (localStorage.getItem('usuario_nombre') === mov.usuario || localStorage.getItem('usuario_rol') === 'admin') 
+                    ? `<button onclick="eliminarTx(${mov.id})" style="border:none; background:none; cursor:pointer;" title="Borrar">🗑️</button>` 
+                    : '' 
+                }
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
+// Función de filtrado (se ejecuta al escribir en los inputs)
+function filtrarHistorial() {
+    // 1. Obtener valores de búsqueda (en minúsculas para comparar fácil)
+    const textoTipo = document.getElementById('filtroTipo').value.toLowerCase();
+    const textoMonto = document.getElementById('filtroMonto').value;
+    const textoHora = document.getElementById('filtroHora').value;
+
+    // 2. Filtrar el array caché
+    const resultados = historialCache.filter(mov => {
+        // Filtro por Tipo o Descripción
+        const cumpleTipo = mov.tipo.toLowerCase().includes(textoTipo) || 
+                           (mov.descripcion && mov.descripcion.toLowerCase().includes(textoTipo));
+        
+        // Filtro por Monto (si está vacío, pasa siempre)
+        const cumpleMonto = textoMonto === "" || mov.monto.toString().includes(textoMonto);
+        
+        // Filtro por Hora (match parcial, ej: "14" encuentra 14:00 y 14:59)
+        const cumpleHora = textoHora === "" || mov.hora.includes(textoHora);
+
+        return cumpleTipo && cumpleMonto && cumpleHora;
+    });
+
+    // 3. Volver a dibujar con los resultados filtrados
+    renderizarHistorial(resultados);
+}
+
+// --- FUNCION PARA PEDIR AUTORIZACIÓN (Promesa) ---
+function solicitarAutorizacionAdmin() {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('modalAuth');
+        const input = document.getElementById('inputAdminPass');
+        const btnConfirm = document.getElementById('btnConfirmAuth');
+        const btnCancel = document.getElementById('btnCancelAuth');
+
+        // Mostrar modal y limpiar
+        modal.style.display = 'flex';
+        input.value = '';
+        input.focus();
+
+        // Función interna para manejar el envío
+        const verificar = async () => {
+            const pass = input.value;
+            if (!pass) return;
+
+            btnConfirm.textContent = "Verificando...";
+            
+            try {
+                const res = await fetch('/api/validar-admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pass })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    modal.style.display = 'none';
+                    resolve(true); // ¡AUTORIZADO!
+                } else {
+                    alert("⛔ Contraseña incorrecta");
+                    input.value = '';
+                    input.focus();
+                    // No resolvemos false todavía, dejamos que intente de nuevo
+                }
+            } catch (e) {
+                alert("Error de conexión");
+                modal.style.display = 'none';
+                resolve(false);
+            } finally {
+                btnConfirm.textContent = "Verificar";
+            }
+        };
+
+        // Eventos (usamos onclick directo para limpiar listeners viejos si fuera necesario, o addEventListener con {once:true})
+        btnConfirm.onclick = verificar;
+        
+        btnCancel.onclick = () => {
+            modal.style.display = 'none';
+            resolve(false); // Cancelado
+        };
+
+        // Permitir Enter para enviar
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') verificar();
+            if (e.key === 'Escape') {
+                modal.style.display = 'none';
+                resolve(false);
+            }
+        };
+    });
+}
+
+const btnLogout = document.getElementById('btnLogout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', (e) => {
+            e.preventDefault(); // Evita que la página recargue o salte
+            
+            if(confirm("¿Seguro que deseas cerrar sesión?")) {
+                // 1. Borramos las credenciales guardadas
+                localStorage.removeItem('usuario_nombre');
+                localStorage.removeItem('usuario_rol');
+                
+                // 2. Redirigimos al login
+                window.location.href = 'login.html';
+            }
+        });
+    }

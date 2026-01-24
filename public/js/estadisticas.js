@@ -28,13 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function cargarMetricas(fechaSeleccionada) {
-    const usuario = localStorage.getItem('usuario_nombre');
     const contenedor = document.getElementById('gridMetricas');
     const formato = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
 
     try {
-        // Solicitamos al servidor con el parámetro fecha
-        const res = await fetch(`/api/reporte-cierre?usuario=${usuario}&fecha=${fechaSeleccionada}`);
+        // CAMBIO: Quitamos "usuario=${usuario}" de la URL. Solo enviamos la fecha.
+        const res = await fetch(`/api/reporte-cierre?fecha=${fechaSeleccionada}`);
         const data = await res.json();
 
         if (data.success) {
@@ -44,7 +43,7 @@ async function cargarMetricas(fechaSeleccionada) {
             let volTotal = 0;
             let maxValor = 0; 
 
-            // Cálculos
+            // Cálculos previos para la barra de porcentaje
             data.resumen.forEach(item => {
                 const valor = parseFloat(item.total_valor);
                 opsTotales += parseInt(item.cantidad);
@@ -97,3 +96,4 @@ async function cargarMetricas(fechaSeleccionada) {
         contenedor.innerHTML = '<p>Error de conexión.</p>';
     }
 }
+
