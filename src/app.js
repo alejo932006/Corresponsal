@@ -85,31 +85,19 @@ app.post('/api/validar-admin', async (req, res) => {
     }
 });
 
-// --- RUTA PARA OBTENER EL RESUMEN DEL DASHBOARD ---
+// --- RUTA PARA OBTENER EL RESUMEN DEL DASHBOARD (VERSIÓN FINAL) ---
 app.get('/api/resumen', async (req, res) => {
     try {
-        // MODIFICACIÓN: Lógica de saldo para Deuda Interna
+        // 1. SALDO GLOBAL BANCOS (Histórico total)
+        // Solo traemos el saldo del banco, la deuda la calculamos abajo por turno
         const queryGlobales = `
-        SELECT 
-            SUM(t.monto * tp.afecta_banco) as saldo_banco,
-            SUM(
-                CASE 
-                    -- Si es Compensación, RESTA a la deuda (El supermercado paga)
-                    WHEN tp.nombre ILIKE '%Compensaci%' THEN -t.monto
-                    
-                    -- Si es otro tipo que genera deuda (Facturas), SUMA
-                    WHEN tp.genera_deuda = TRUE THEN t.monto
-                    
-                    ELSE 0 
-                END
-            ) as deuda_empresa
-        FROM transacciones t
-        JOIN tipos_transaccion tp ON t.tipo_id = tp.id;
+            SELECT SUM(t.monto * tp.afecta_banco) as saldo_banco
+            FROM transacciones t
+            JOIN tipos_transaccion tp ON t.tipo_id = tp.id;
         `;
         const resGlobales = await pool.query(queryGlobales);
         
-        // 2. Saldo de Caja REAL (Ahora busca la última caja SIN importar la fecha)
-        // MODIFICADO: Quitamos "WHERE fecha = CURRENT_DATE"
+        // 2. OBTENER DATOS DE LA CAJA ACTUAL (ÚLTIMO TURNO)
         const queryCaja = `
             SELECT monto_inicial, hora_apertura 
             FROM aperturas_caja 
@@ -118,11 +106,15 @@ app.get('/api/resumen', async (req, res) => {
         const resCaja = await pool.query(queryCaja);
         
         let saldoCajaReal = 0;
+        let fechaInicioTurno = new Date(); // Fecha por defecto si no hay caja
 
         if (resCaja.rows.length > 0) {
             const { monto_inicial, hora_apertura } = resCaja.rows[0];
             
-            // Sumamos transacciones hechas DESPUÉS de esa apertura
+            // ¡CLAVE! Guardamos la hora exacta en que se abrió esta caja
+            fechaInicioTurno = hora_apertura;
+
+            // Calculamos saldo de caja (movimientos desde esa hora)
             const queryMovsCaja = `
                 SELECT SUM(t.monto * tp.afecta_caja) as movimientos
                 FROM transacciones t
@@ -134,18 +126,29 @@ app.get('/api/resumen', async (req, res) => {
             saldoCajaReal = parseFloat(monto_inicial) + (parseFloat(resMovs.rows[0].movimientos) || 0);
         }
 
-        // 3. Últimos movimientos
+        // 3. CÁLCULO DE DEUDA INTERNA (POR TURNO)
+        // Sumamos solo los pagos a proveedores (7 y 13) realizados DESDE la apertura de caja
+        const queryDeuda = `
+            SELECT COALESCE(SUM(monto), 0) as total_deuda
+            FROM transacciones
+            WHERE tipo_id IN (7, 13) 
+            AND fecha_hora >= $1 
+        `;
+        const resDeuda = await pool.query(queryDeuda, [fechaInicioTurno]);
+        const deudaInterna = parseFloat(resDeuda.rows[0].total_deuda);
+
+        // 4. ÚLTIMOS MOVIMIENTOS
         const queryMovimientos = `
             SELECT 
                 to_char(t.fecha_hora, 'HH12:MI AM') as hora,
                 tp.nombre as tipo,
                 t.descripcion,
                 t.monto,
-                tp.afecta_caja,       -- Importante para color verde/rojo
-                u.nombre as usuario   -- Importante para mostrar quién lo hizo
+                tp.afecta_caja,       
+                u.nombre as usuario   
             FROM transacciones t
             JOIN tipos_transaccion tp ON t.tipo_id = tp.id
-            JOIN usuarios u ON t.usuario_id = u.id  -- Agregamos esta conexión
+            JOIN usuarios u ON t.usuario_id = u.id 
             ORDER BY t.id DESC
             LIMIT 20;
         `;
@@ -154,7 +157,7 @@ app.get('/api/resumen', async (req, res) => {
         const totales = {
             saldo_caja: saldoCajaReal,
             saldo_banco: resGlobales.rows[0].saldo_banco || 0,
-            deuda_empresa: resGlobales.rows[0].deuda_empresa || 0
+            deuda_empresa: deudaInterna // <--- Muestra solo lo pagado en este turno
         };
 
         res.json({
@@ -799,6 +802,58 @@ app.post('/api/admin/verificar-password', async (req, res) => {
     } catch (error) {
         console.error('Error verificando admin:', error);
         res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+});
+
+// --- RUTA: ABRIR CAJÓN (CON AUTENTICACIÓN) ---
+app.post('/api/admin/abrir-cajon', (req, res) => {
+    const { exec } = require('child_process');
+    const path = require('path');
+    const fs = require('fs');
+
+    const tempFile = path.join(__dirname, 'temp_cajon.bin');
+    // Código Epson: ESC p 0 25 250
+    const comandoApertura = Buffer.from([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+
+    try {
+        fs.writeFileSync(tempFile, comandoApertura);
+
+        // DATOS DE CONEXIÓN (Modifica si cambiaste usuario/clave)
+        const IP = "192.168.0.76"; 
+        const IMPRESORA = "IMPREPOS";
+        const USUARIO = "cajero";
+        const CLAVE = "1234";
+        
+        const rutaRed = `\\\\${IP}\\${IMPRESORA}`;
+
+        // COMANDO TRIPLE:
+        // 1. Borrar conexiones viejas (para evitar conflictos)
+        // 2. Conectar usando el usuario y clave
+        // 3. Copiar el archivo
+        const comandoCMD = `NET USE "${rutaRed}" /DELETE /Y & NET USE "${rutaRed}" "${CLAVE}" /USER:"${USUARIO}" & COPY /B "${tempFile}" "${rutaRed}"`;
+
+        console.log("Autenticando y enviando...");
+
+        exec(comandoCMD, (error, stdout, stderr) => {
+            try { fs.unlinkSync(tempFile); } catch(e){} 
+
+            if (error) {
+                console.error('Error:', error.message);
+                if (!res.headersSent) {
+                    return res.status(500).json({ success: false, message: 'Error de autenticación: ' + error.message });
+                }
+                return;
+            }
+
+            console.log("Resultado:", stdout);
+            if (!res.headersSent) {
+                res.json({ success: true, message: 'Cajón abierto con autenticación' });
+            }
+        });
+
+    } catch (e) {
+        console.error(e);
+        if (!res.headersSent) res.status(500).json({ success: false });
     }
 });
 

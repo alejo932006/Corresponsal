@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarTabla();
     cargarSaldoTotal();
 
+    if (!editMode) {
+        sincronizarDatosEnVivo();
+    }
+
     // 4. Manejar Formulario
     const form = document.getElementById('formCorresponsal');
     
@@ -216,4 +220,113 @@ async function confirmarAjuste() {
             cargarSaldoTotal();
         } else { alert('Error: ' + d.message); }
     } catch(e) { alert('Error conexión'); }
+}
+
+// --- FUNCIÓN DE SINCRONIZACIÓN Y ANIMACIÓN ---
+async function sincronizarDatosEnVivo() {
+    const ids = ['deposito', 'recaudo', 'pago_tc', 'pago_cartera', 'retiro', 'compensacion'];
+    
+    // 1. Activar animación de "Cargando..."
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) {
+            el.classList.add('updating-field');
+            el.placeholder = "Sincronizando...";
+        }
+    });
+
+    try {
+        // 2. Pedir datos al servidor
+        const res = await fetch('/api/financiero/corresponsal/calculo-dia');
+        const data = await res.json();
+
+        if (data.success) {
+            const d = data.datos;
+
+            // Pequeño delay artificial (500ms) para que se aprecie la animación de carga "Pro"
+            setTimeout(() => {
+                // 3. Rellenar datos
+                asignarValor('deposito', d.deposito);
+                asignarValor('recaudo', d.recaudo);
+                asignarValor('pago_tc', d.pago_tc);
+                asignarValor('pago_cartera', d.pago_cartera);
+                asignarValor('retiro', d.retiro);
+                asignarValor('compensacion', d.compensacion);
+
+                // 4. Quitar animación
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) {
+                        el.classList.remove('updating-field');
+                        el.placeholder = "$ 0"; // Restaurar placeholder
+                    }
+                });
+                
+            }, 800); // 0.8 segundos de efecto visual
+        }
+    } catch (error) {
+        console.error("Error sincronizando:", error);
+        ids.forEach(id => document.getElementById(id).classList.remove('updating-field'));
+    }
+}
+
+function asignarValor(id, valor) {
+    const el = document.getElementById(id);
+    // Solo ponemos el valor si es mayor a 0, para dejarlo limpio si no hubo movimiento
+    if (el && valor > 0) {
+        el.value = valor;
+    } else {
+        el.value = ''; // Dejar vacío si es 0 para que se vea el placeholder
+    }
+}
+
+// --- FUNCIONES PARA EL MODAL DE COMPENSACIONES ---
+
+async function verCompensacionesHoy() {
+    const modal = document.getElementById('modalCompensaciones');
+    const tbody = document.getElementById('tablaCompensacionesBody');
+    
+    // 1. Mostrar Modal y Estado de Carga
+    modal.style.display = 'flex';
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center" style="padding:20px;">Cargando datos...</td></tr>';
+
+    try {
+        // 2. Consultar al Backend
+        const res = await fetch('/api/financiero/corresponsal/compensaciones-hoy');
+        const data = await res.json();
+
+        if (data.success) {
+            tbody.innerHTML = ''; // Limpiar
+
+            if (data.datos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center" style="padding:20px; color:#999;">No hay compensaciones registradas hoy.</td></tr>';
+                return;
+            }
+
+            // 3. Renderizar filas
+            data.datos.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #eee';
+                
+                tr.innerHTML = `
+                    <td style="padding: 10px;">${item.hora}</td>
+                    <td style="padding: 10px;">
+                        <strong style="color:#555;">${item.usuario}</strong><br>
+                        <small style="color:#888;">${item.descripcion || 'Sin descripción'}</small>
+                    </td>
+                    <td style="padding: 10px; text-align: right; color: #c62828; font-weight: bold;">
+                        ${parseFloat(item.monto).toLocaleString('es-CO', {style:'currency', currency:'COP', maximumFractionDigits:0})}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center" style="color:red; padding:20px;">Error de conexión</td></tr>';
+    }
+}
+
+function cerrarModalCompensaciones() {
+    document.getElementById('modalCompensaciones').style.display = 'none';
 }

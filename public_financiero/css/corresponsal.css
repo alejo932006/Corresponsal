@@ -110,3 +110,59 @@ td:first-child, td:nth-child(2), td:nth-child(3) { text-align: left; }
 .btn-cancel-edit:hover { background: #757575; }
 
 .text-center { text-align: center; }
+
+/* --- ESTILOS PARA INPUTS "EN VIVO" (LIVE INPUTS) --- */
+
+/* Clase base para las casillas automáticas */
+.live-input {
+    background-color: #f8faff; 
+    border: 2px solid #e0e6ed;
+    border-radius: 8px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700; /* Texto grueso */
+    color: #2c3e50;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: right;
+    padding-right: 15px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+/* Efecto al hacer foco (Edición manual) */
+.live-input:focus {
+    background-color: #fff;
+    border-color: #3949ab;
+    box-shadow: 0 0 0 4px rgba(57, 73, 171, 0.15);
+    transform: translateY(-2px);
+}
+
+/* --- ESTILO PARA ENTRADAS (Verde Tecnológico) --- */
+/* Se aplicará a Depósitos, Recaudos, etc. */
+.live-entry {
+    border-left: 5px solid #2e7d32; /* Barra lateral verde */
+    background: linear-gradient(to right, #f1f8e9, #ffffff);
+}
+.live-entry:focus { border-color: #2e7d32; }
+
+/* --- ESTILO PARA SALIDAS (Rojo Tecnológico) --- */
+/* Se aplicará a Retiros y Compensaciones */
+.live-exit {
+    border-left: 5px solid #c62828; /* Barra lateral roja */
+    background: linear-gradient(to right, #ffebee, #ffffff);
+}
+.live-exit:focus { border-color: #c62828; }
+
+/* --- ANIMACIÓN DE "ACTUALIZANDO" --- */
+/* Efecto de pulso cuando el sistema está trayendo los datos */
+@keyframes pulse-sync {
+    0% { box-shadow: 0 0 0 0 rgba(57, 73, 171, 0.4); opacity: 0.7; }
+    70% { box-shadow: 0 0 0 10px rgba(57, 73, 171, 0); opacity: 1; }
+    100% { box-shadow: 0 0 0 0 rgba(57, 73, 171, 0); }
+}
+
+.updating-field {
+    animation: pulse-sync 1.5s infinite;
+    background-color: #e8eaf6 !important;
+    color: transparent !important; /* Oculta el número mientras carga */
+    position: relative;
+}

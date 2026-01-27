@@ -254,13 +254,16 @@ function renderizarCarrito() {
     // --- 2. GENERAR ÍTEMS ---
     carritoCliente.forEach((op, index) => {
         
-        // === LA CORRECCIÓN MÁGICA AQUÍ ===
-        // Detectamos si el nombre incluye "Fondeo" o "Entrada" para tratarlo como positivo
+        // === CORRECCIÓN VISUAL PROVEEDORES ===
         const nombreOp = op.tipo_nombre.toLowerCase();
-        const esFondeo = nombreOp.includes('fondeo') || nombreOp.includes('entrada tesorería');
 
-        // Es Ingreso si la categoría es RECAUDO ... O ... si es este caso especial de Fondeo
-        const esIngreso = op.categoria === 'RECAUDO' || esFondeo; 
+        // Agregamos 'proveedor' a la lista de excepciones para que siempre sea POSITIVO (Verde)
+        const esEspecial = nombreOp.includes('fondeo') || 
+                           nombreOp.includes('entrada tesorería') || 
+                           nombreOp.includes('proveedor'); // <--- NUEVO
+
+        // Es Ingreso si es RECAUDO ... O ... si es una de nuestras excepciones
+        const esIngreso = op.categoria === 'RECAUDO' || esEspecial; 
         
         // A. Lógica de Suma/Resta
         if (esIngreso) {
@@ -276,7 +279,10 @@ function renderizarCarrito() {
         
         // Etiqueta bonita
         let textoCategoria = op.categoria === 'RECAUDO' ? 'INGRESO' : 'RETIRO';
-        if (esFondeo) textoCategoria = 'FONDEO (Entrada)'; // Etiqueta especial
+        
+        // Etiqueta personalizada para que se vea profesional
+        if (nombreOp.includes('proveedor')) textoCategoria = 'PAGO PROV.';
+        else if (nombreOp.includes('fondeo')) textoCategoria = 'FONDEO';
 
         // C. Crear la Tarjeta HTML
         const item = document.createElement('div');
@@ -493,31 +499,50 @@ async function cargarOpciones() {
 
             // 2. GUARDAR TIPOS EN MEMORIA
             todosLosTipos = data.tipos;
-            renderizarBotonesTipos(); // (Si estás usando la versión de botones que hicimos antes)
         }
     } catch (error) { console.error(error); }
 }
 
-// NUEVA FUNCIÓN AUXILIAR PARA DIBUJAR LOS BOTONES
 function renderizarBotonesTipos() {
     const contenedorIngreso = document.getElementById('listaTiposIngreso');
     const contenedorEgreso = document.getElementById('listaTiposEgreso');
-    
+
+    // Validación por si acaso no existen los contenedores en este HTML
+    if (!contenedorIngreso || !contenedorEgreso) return;
+
     // Limpiar contenedores
     contenedorIngreso.innerHTML = '';
     contenedorEgreso.innerHTML = '';
 
+    // 1. AGREGAR BOTÓN DE GRUPO "PROVEEDORES" (Siempre visible en Ingresos)
+    const btnGrupo = document.createElement('div');
+    btnGrupo.className = 'btn-tipo-opcion';
+    // Estilo especial para que destaque
+    btnGrupo.style.border = "2px dashed #3949ab"; 
+    btnGrupo.style.backgroundColor = "#e8eaf6";
+    btnGrupo.innerHTML = `<span>🚛</span> Pago Proveedores`;
+    
+    // Al hacer clic, abrimos el menú (reutilizamos la lógica del modal)
+    btnGrupo.onclick = () => mostrarSubmenuProveedores(btnGrupo);
+    
+    // Lo ponemos de primero en la columna izquierda
+    contenedorIngreso.appendChild(btnGrupo);
+
+    // 2. DIBUJAR EL RESTO DE BOTONES
     todosLosTipos.forEach(tipo => {
-        const btn = document.createElement('div'); // Usamos div para estilo personalizado
+        // --- FILTRO BLINDADO ---
+        // Si el nombre tiene "proveedor" (ID 7 o 13), NO lo dibujamos suelto.
+        // Esto evita que salgan repetidos o en la columna de salida.
+        if (tipo.nombre.toLowerCase().includes('proveedor')) return; 
+
+        const btn = document.createElement('div');
         btn.className = 'btn-tipo-opcion';
-        btn.textContent = tipo.nombre; // Ej: "Depósito", "Retiro"
+        btn.textContent = tipo.nombre;
         
-        // Evento Click
         btn.addEventListener('click', () => {
             seleccionarTipoVisual(btn, tipo);
         });
 
-        // Clasificar en columna correcta según categoría (RECAUDO vs TESORERIA)
         if (tipo.categoria === 'RECAUDO') {
             btn.innerHTML = `<span>⬇️</span> ${tipo.nombre}`;
             contenedorIngreso.appendChild(btn);
@@ -526,6 +551,70 @@ function renderizarBotonesTipos() {
             contenedorEgreso.appendChild(btn);
         }
     });
+}
+
+function mostrarSubmenuProveedoresModal() {
+    // BUSCAR DIRECTAMENTE POR ID (Es lo más seguro)
+    const tipoDeuda = todosLosTipos.find(t => t.id == 7);   // ID 7: Deuda
+    const tipoConsig = todosLosTipos.find(t => t.id == 13); // ID 13: Consignación
+
+    if (!tipoDeuda && !tipoConsig) {
+        alert("⚠️ Error Crítico: No se encuentran los Tipos de Transacción ID 7 y 13 en la base de datos.");
+        return;
+    }
+
+    const displayDeuda = tipoDeuda ? 'block' : 'none';
+    const displayConsig = tipoConsig ? 'block' : 'none';
+
+    if (document.getElementById('modalProveedores')) document.getElementById('modalProveedores').remove();
+
+    const modalHTML = `
+    <div id="modalProveedores" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:9999; backdrop-filter: blur(2px);">
+        <div style="background:white; padding:25px; border-radius:15px; width:320px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); animation: popIn 0.3s;">
+            <h3 style="color:#3949ab; margin-top:0;"><i class="fa-solid fa-truck"></i> Pago a Proveedor</h3>
+            <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">Selecciona el método:</p>
+            
+            <button id="btnProvDeuda" style="display:${displayDeuda}; width:100%; padding:12px; margin-bottom:10px; border:none; border-radius:8px; background:#e8f5e9; color:#2e7d32; font-weight:bold; cursor:pointer; text-align:left;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:1.2rem;">🧾</span> 
+                    <div>
+                        <div>Pago Factura (Deuda)</div>
+                        <small style="opacity:0.8;">Registrar como Recaudo</small>
+                    </div>
+                </div>
+            </button>
+
+            <button id="btnProvConsig" style="display:${displayConsig}; width:100%; padding:12px; margin-bottom:15px; border:none; border-radius:8px; background:#e3f2fd; color:#1565c0; font-weight:bold; cursor:pointer; text-align:left;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:1.2rem;">🏦</span> 
+                    <div>
+                        <div>Consignación</div>
+                        <small style="opacity:0.8;">Registrar como Depósito</small>
+                    </div>
+                </div>
+            </button>
+
+            <button onclick="document.getElementById('modalProveedores').remove()" style="background:none; border:none; color:#999; text-decoration:underline; cursor:pointer;">Cancelar</button>
+        </div>
+        <style>@keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }</style>
+    </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    if (tipoDeuda) {
+        document.getElementById('btnProvDeuda').onclick = () => {
+            document.getElementById('modalProveedores').remove();
+            seleccionarTipoDesdeModal(tipoDeuda);
+        };
+    }
+
+    if (tipoConsig) {
+        document.getElementById('btnProvConsig').onclick = () => {
+            document.getElementById('modalProveedores').remove();
+            seleccionarTipoDesdeModal(tipoConsig);
+        };
+    }
 }
 
 // NUEVA FUNCIÓN PARA MANEJAR EL CLICK EN UN TIPO
@@ -854,7 +943,7 @@ function abrirModalTipos(categoria) {
     const contenedor = document.getElementById('gridOpcionesTipos');
     const titulo = document.getElementById('tituloModalTipos');
     
-    // Configurar título y color según categoría
+    // Configurar título y color
     if (categoria === 'RECAUDO') {
         titulo.textContent = '📥 Seleccione tipo de Ingreso';
         titulo.style.color = '#166534';
@@ -863,26 +952,42 @@ function abrirModalTipos(categoria) {
         titulo.style.color = '#991b1b';
     }
 
-    // Filtrar y renderizar botones
     contenedor.innerHTML = '';
+
+    // 1. GRUPO PROVEEDORES: Solo aparece si estamos en INGRESO (RECAUDO)
+    if (categoria === 'RECAUDO') {
+         const btnProv = document.createElement('div');
+         btnProv.className = 'btn-modal-option';
+         btnProv.style.border = "2px dashed #3949ab"; 
+         btnProv.style.backgroundColor = "#eef2ff";
+         btnProv.innerHTML = `<span class="emoji">🚛</span><span>Pago Proveedores</span>`;
+         btnProv.onclick = () => mostrarSubmenuProveedoresModal();
+         contenedor.appendChild(btnProv);
+    }
+
+    // 2. FILTRAR RESTO DE BOTONES
     const tiposFiltrados = todosLosTipos.filter(t => t.categoria === categoria);
 
-    if(tiposFiltrados.length === 0) {
+    if(tiposFiltrados.length === 0 && categoria !== 'RECAUDO') {
         contenedor.innerHTML = '<p style="text-align:center; width:100%; color:#94a3b8;">No hay opciones disponibles.</p>';
     }
 
     tiposFiltrados.forEach(tipo => {
+        // --- BLOQUEO POR ID (INFALIBLE) ---
+        // ID 7: Pago Proveedor (Deuda) -> Lo ocultamos para que no salga en Salida ni suelto
+        // ID 13: Pago Proveedor (Consignación) -> Lo ocultamos para que no salga suelto
+        if (tipo.id == 7 || tipo.id == 13) return; 
+
+        // Bloqueo de respaldo por nombre (por si creas nuevos proveedores)
+        if (tipo.nombre.toLowerCase().includes('proveedor')) return;
+
         const btn = document.createElement('div');
         btn.className = 'btn-modal-option';
         
-        // Emoji por defecto si no tienes iconos específicos
         let emoji = categoria === 'RECAUDO' ? '💰' : '💸';
+        if (tipo.nombre.toLowerCase().includes('nequi')) emoji = '📱';
         
-        btn.innerHTML = `
-            <span class="emoji">${emoji}</span>
-            <span>${tipo.nombre}</span>
-        `;
-        
+        btn.innerHTML = `<span class="emoji">${emoji}</span><span>${tipo.nombre}</span>`;
         btn.onclick = () => seleccionarTipoDesdeModal(tipo);
         contenedor.appendChild(btn);
     });
@@ -1247,47 +1352,25 @@ const btnLogout = document.getElementById('btnLogout');
         });
     }
 
-// --- FUNCIÓN PARA ABRIR CAJÓN SIN FACTURA ---
-function abrirCajonMonedero() {
-    // 1. Creamos un iframe invisible (una mini ventana oculta)
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    // 2. Le metemos un contenido "vacío" pero con la estructura básica
-    // El punto (.) con color blanco es un truco para que el navegador crea que hay algo que imprimir
-    const contenido = `
-        <html>
-        <head>
-            <style>
-                @page { size: auto; margin: 0mm; } 
-                body { margin: 0; padding: 0; overflow: hidden; }
-            </style>
-        </head>
-        <body>
-            <div style="font-size:1px; color:white; opacity:0;">.</div>
-        </body>
-        </html>
-    `;
-
-    iframe.contentDocument.write(contenido);
-    iframe.contentDocument.close();
-
-    // 3. Ordenamos imprimir esa "nada"
+// --- FUNCIÓN PARA ABRIR CAJÓN SIN GASTAR PAPEL ---
+async function abrirCajonMonedero() {
     try {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-    } catch (e) {
-        console.error("Error intentando abrir cajón:", e);
-    }
+        // Llamamos a la ruta silenciosa que acabamos de configurar
+        const res = await fetch('/api/admin/abrir-cajon', {
+            method: 'POST'
+        });
+        
+        const data = await res.json();
+        
+        if (!data.success) {
+            alert("⚠️ Error: " + data.message);
+        } else {
+            console.log("✅ Cajón abierto (Silencioso)");
+        }
 
-    // 4. Limpiamos la basura (borramos el iframe después de un segundo)
-    setTimeout(() => {
-        document.body.removeChild(iframe);
-    }, 1000);
+    } catch (error) {
+        console.error("Error:", error);
+    }
 }
 
 function sumarMonto(valor) {

@@ -52,66 +52,72 @@
             </button>
         </div>
         
-        <div class="card-form">
-            <h3><i class="fa-solid fa-receipt"></i> Ingresar Totales del Cierre (Tirilla)</h3>
-            <form id="formCorresponsal">
-                <input type="hidden" id="editId">
-
-                <div class="form-grid-custom">
-                    
-                    <div class="input-group">
-                        <label>Fecha</label>
-                        <input type="date" id="fecha" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Hora</label>
-                        <input type="time" id="hora" required>
-                    </div>
-                    <div class="input-group wide-desc">
-                        <label>Descripción / Turno</label>
-                        <input type="text" id="descripcion" placeholder="Ej: Cierre Turno Tarde" required autocomplete="off">
-                    </div>
-
-                    <div class="divider-label">ENTRADAS (+)</div>
-                    
-                    <div class="input-group">
-                        <label class="green-text">Depósitos</label>
-                        <input type="number" id="deposito" placeholder="0" min="0" step="0.01">
-                    </div>
-                    <div class="input-group">
-                        <label class="green-text">Recaudos</label>
-                        <input type="number" id="recaudo" placeholder="0" min="0" step="0.01">
-                    </div>
-                    <div class="input-group">
-                        <label class="green-text">Pago T. Crédito</label>
-                        <input type="number" id="pago_tc" placeholder="0" min="0" step="0.01">
-                    </div>
-                    <div class="input-group">
-                        <label class="green-text">Pago Cartera</label>
-                        <input type="number" id="pago_cartera" placeholder="0" min="0" step="0.01">
-                    </div>
-
-                    <div class="divider-label">SALIDAS (-)</div>
-
-                    <div class="input-group">
-                        <label class="red-text">Retiros</label>
-                        <input type="number" id="retiro" placeholder="0" min="0" step="0.01">
-                    </div>
-                    <div class="input-group">
-                        <label class="red-text">Compensaciones</label>
-                        <input type="number" id="compensacion" placeholder="0" min="0" step="0.01">
-                    </div>
-
-                    <div class="btn-container-full">
-                        <button type="submit" class="btn-save" id="btnSubmit">GUARDAR CIERRE</button>
-                        
-                        <button type="button" id="btnCancelEdit" class="btn-cancel-edit" style="display: none;" onclick="cancelarEdicion()">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
+        <h3><i class="fa-solid fa-receipt"></i> Ingresar Totales del Cierre (Tirilla)</h3>
+        <form id="formCorresponsal">
+            <input type="hidden" id="editId">
+        
+            <div style="text-align: right; margin-bottom: 15px;">
+                <button type="button" onclick="sincronizarDatosEnVivo()" style="background:none; border:none; color:#3949ab; cursor:pointer; font-size:0.9rem; font-weight:bold;">
+                    <i class="fa-solid fa-sync"></i> Sincronizar con POS
+                </button>
+                <button type="button" onclick="verCompensacionesHoy()" style="background:none; border:none; color:#c62828; cursor:pointer; font-size:0.9rem; font-weight:bold; margin-right: 15px; border: 1px solid #c62828; padding: 5px 10px; border-radius: 5px;">
+                    <i class="fa-solid fa-list-check"></i> Ver Compensaciones
+                </button>
+            </div>
+        
+            <div class="form-grid-custom">
+                
+                <div class="input-group">
+                    <label>Fecha</label>
+                    <input type="date" id="fecha" required>
                 </div>
-            </form>
-        </div>
+                <div class="input-group">
+                    <label>Hora</label>
+                    <input type="time" id="hora" required>
+                </div>
+                <div class="input-group wide-desc">
+                    <label>Descripción / Turno</label>
+                    <input type="text" id="descripcion" placeholder="Ej: Cierre Turno Tarde" required autocomplete="off">
+                </div>
+        
+                <div class="divider-label">ENTRADAS (INGRESOS DEL DÍA)</div>
+                
+                <div class="input-group">
+                    <label class="green-text"><i class="fa-solid fa-arrow-down"></i> Depósitos</label>
+                    <input type="number" id="deposito" class="live-input live-entry" placeholder="$ 0" min="0" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label class="green-text"><i class="fa-solid fa-file-invoice-dollar"></i> Recaudos</label>
+                    <input type="number" id="recaudo" class="live-input live-entry" placeholder="$ 0" min="0" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label class="green-text"><i class="fa-regular fa-credit-card"></i> Pago T. Crédito</label>
+                    <input type="number" id="pago_tc" class="live-input live-entry" placeholder="$ 0" min="0" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label class="green-text"><i class="fa-solid fa-hand-holding-dollar"></i> Pago Cartera</label>
+                    <input type="number" id="pago_cartera" class="live-input live-entry" placeholder="$ 0" min="0" step="0.01">
+                </div>
+        
+                <div class="divider-label">SALIDAS (EGRESOS DEL DÍA)</div>
+        
+                <div class="input-group">
+                    <label class="red-text"><i class="fa-solid fa-arrow-up"></i> Retiros Cliente</label>
+                    <input type="number" id="retiro" class="live-input live-exit" placeholder="$ 0" min="0" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label class="red-text"><i class="fa-solid fa-rotate"></i> Compensaciones</label>
+                    <input type="number" id="compensacion" class="live-input live-exit" placeholder="$ 0" min="0" step="0.01">
+                </div>
+        
+                <div class="btn-container-full">
+                    <button type="submit" class="btn-save" id="btnSubmit">GUARDAR CIERRE</button>
+                    <button type="button" id="btnCancelEdit" class="btn-cancel-edit" style="display: none;" onclick="cancelarEdicion()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
 
         <div class="card-table">
             <div class="table-responsive">
@@ -153,6 +159,35 @@
             <div class="modal-footer">
                 <button onclick="cerrarModalAjuste()" class="btn-cancel">Cancelar</button>
                 <button onclick="confirmarAjuste()" class="btn-confirm">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalCompensaciones" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="width: 500px; max-width: 90%;">
+            <div class="modal-header" style="border-bottom: 2px solid #ffebee;">
+                <h2 style="color: #c62828; margin:0;"><i class="fa-solid fa-rotate"></i> Compensaciones de Hoy</h2>
+                <button onclick="cerrarModalCompensaciones()" class="close-btn">&times;</button>
+            </div>
+            
+            <div class="modal-body" style="padding-top: 15px;">
+                <div style="max-height: 350px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                        <thead style="position: sticky; top: 0; background: white;">
+                            <tr style="background: #ffebee; color: #c62828;">
+                                <th style="padding: 10px; text-align: left;">Hora</th>
+                                <th style="padding: 10px; text-align: left;">Usuario / Detalle</th>
+                                <th style="padding: 10px; text-align: right;">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCompensacionesBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+                <button onclick="cerrarModalCompensaciones()" class="btn-cancel" style="width: 100%;">Cerrar</button>
             </div>
         </div>
     </div>

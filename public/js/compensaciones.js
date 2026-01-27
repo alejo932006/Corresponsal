@@ -118,3 +118,111 @@ async function cargarHistorial() {
         tbody.innerHTML = '<tr><td colspan="4">Error cargando historial</td></tr>';
     }
 }
+
+// --- CARGAR HISTORIAL DE COMPENSACIONES ---
+async function cargarHistorialCompensaciones() {
+    const usuario = localStorage.getItem('usuario_nombre');
+    const container = document.getElementById('listaCompensaciones'); // Asegúrate que tu <tbody> o <div> tenga este ID
+
+    if (!container) return;
+
+    try {
+        const res = await fetch(`/api/compensaciones?usuario=${usuario}`);
+        const data = await res.json();
+
+        if (data.success) {
+            container.innerHTML = ''; // Limpiar lista anterior
+
+            if (data.movimientos.length === 0) {
+                container.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px; color:#999;">No hay compensaciones recientes.</td></tr>';
+                return;
+            }
+
+            const formato = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
+
+            data.movimientos.forEach(mov => {
+                const fila = document.createElement('tr');
+                fila.style.borderBottom = "1px solid #eee";
+                
+                // NOTA: Ajusta el HTML interno según tu diseño (tabla o divs)
+                fila.innerHTML = `
+                    <td style="padding:10px;">${mov.fecha}</td>
+                    <td style="padding:10px;"><strong>${mov.banco || 'N/A'}</strong></td>
+                    <td style="padding:10px;">${mov.descripcion || 'Sin nota'}</td>
+                    <td style="padding:10px; color:#2ecc71; font-weight:bold;">${formato.format(mov.monto)}</td>
+                    <td style="padding:10px; text-align:center;">
+                        <button onclick="editarCompensacion(${mov.id}, '${mov.descripcion || ''}', ${mov.monto})" 
+                                style="border:none; background:#fff3cd; color:#856404; cursor:pointer; padding:5px 8px; border-radius:4px; margin-right:5px;" title="Editar">
+                            ✏️
+                        </button>
+                        <button onclick="eliminarCompensacion(${mov.id})" 
+                                style="border:none; background:#f8d7da; color:#721c24; cursor:pointer; padding:5px 8px; border-radius:4px;" title="Eliminar">
+                            🗑️
+                        </button>
+                    </td>
+                `;
+                container.appendChild(fila);
+            });
+        }
+    } catch (error) {
+        console.error("Error cargando compensaciones:", error);
+    }
+}
+
+// --- FUNCIÓN PARA ELIMINAR COMPENSACIÓN ---
+async function eliminarCompensacion(id) {
+    if(!confirm("⚠️ ¿Estás seguro de ELIMINAR esta compensación?\n\nEsta acción afectará el saldo del banco.")) return;
+    
+    try {
+        const res = await fetch(`/api/transacciones/${id}`, { 
+            method: 'DELETE' 
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            alert("🗑️ Compensación eliminada correctamente.");
+            cargarHistorialCompensaciones(); // Recargar la tabla
+        } else { 
+            alert("❌ Error: " + data.message); 
+        }
+    } catch (e) { 
+        alert("Error de conexión al intentar eliminar."); 
+    }
+}
+
+// --- FUNCIÓN PARA EDITAR COMPENSACIÓN ---
+async function editarCompensacion(id, descActual, montoActual) {
+    // 1. Pedir nuevos datos
+    const nuevoMonto = prompt("Editar Monto de la Compensación:", montoActual);
+    if (nuevoMonto === null) return; // Si cancela
+
+    const nuevaDesc = prompt("Editar Descripción / Referencia:", descActual);
+    if (nuevaDesc === null) return; // Si cancela
+
+    // 2. Enviar actualización al servidor
+    try {
+        const res = await fetch(`/api/transacciones/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                monto: parseFloat(nuevoMonto), 
+                descripcion: nuevaDesc 
+            })
+        });
+
+        const data = await res.json();
+        
+        if (data.success) {
+            alert("✅ Compensación actualizada.");
+            cargarHistorialCompensaciones(); // Recargar la tabla
+        } else {
+            alert("❌ Error al actualizar: " + data.message);
+        }
+    } catch (e) { 
+        alert("Error de conexión al intentar editar."); 
+    }
+}
+
+// Asegúrate de llamar a cargarHistorialCompensaciones() cuando cargue la página
+document.addEventListener('DOMContentLoaded', cargarHistorialCompensaciones);

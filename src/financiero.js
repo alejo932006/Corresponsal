@@ -1262,6 +1262,101 @@ app.get('/api/financiero/pnl/filtrar', async (req, res) => {
     }
 });
 
+// --- RUTA: CALCULAR TOTALES POR TURNO (CORREGIDA) ---
+app.get('/api/financiero/corresponsal/calculo-dia', async (req, res) => {
+    try {
+        // 1. OBTENER LA HORA DE LA ÚLTIMA APERTURA DE CAJA
+        const queryCaja = `
+            SELECT hora_apertura 
+            FROM aperturas_caja 
+            ORDER BY id DESC LIMIT 1
+        `;
+        const resCaja = await pool.query(queryCaja);
+        
+        // Si no hay caja abierta, usamos el inicio del día por defecto
+        let fechaInicio = new Date();
+        if (resCaja.rows.length > 0) {
+            fechaInicio = resCaja.rows[0].hora_apertura;
+        } else {
+            fechaInicio.setHours(0,0,0,0);
+        }
+
+        // 2. CALCULAR TOTALES FILTRANDO POR ESA HORA EXACTA
+        const query = `
+            SELECT 
+                -- 1. DEPÓSITOS 
+                COALESCE(SUM(CASE 
+                    WHEN tp.nombre ILIKE '%Depósito%' 
+                      OR tp.nombre ILIKE '%Consignación%' 
+                      OR tp.nombre ILIKE '%Pago Proveedor (Consignación)%' 
+                    THEN t.monto ELSE 0 END), 0) as deposito,
+
+                -- 2. RECAUDOS (Incluye Nequi, Servicios y Pago Prov. Recaudo)
+                COALESCE(SUM(CASE 
+                    WHEN tp.nombre ILIKE '%Servicios Públicos%' 
+                      OR (tp.nombre ILIKE '%Pago Proveedor%' AND tp.nombre NOT ILIKE '%(Consignación)%') 
+                      OR tp.nombre ILIKE '%Recarga Nequi%'  
+                      OR tp.categoria = 'RECAUDO' -- Atrapa Fondeo si le cambiaste la categoría
+                    THEN t.monto ELSE 0 END), 0) as recaudo,
+
+                -- 3. PAGO TC 
+                COALESCE(SUM(CASE 
+                    WHEN tp.nombre ILIKE '%Tarjeta de Crédito%' 
+                    THEN t.monto ELSE 0 END), 0) as pago_tc,
+
+                -- 4. CARTERA 
+                COALESCE(SUM(CASE 
+                    WHEN tp.nombre ILIKE '%Cartera%' OR tp.nombre ILIKE '%Crédito%' 
+                    THEN t.monto ELSE 0 END), 0) as pago_cartera,
+
+                -- 5. RETIROS (Solo Clientes)
+                COALESCE(SUM(CASE 
+                    WHEN tp.nombre ILIKE '%Retiro Cliente%' 
+                    THEN t.monto ELSE 0 END), 0) as retiro,
+
+                -- 6. COMPENSACIÓN 
+                COALESCE(SUM(CASE 
+                    WHEN tp.nombre ILIKE '%Compensación%' 
+                    THEN t.monto ELSE 0 END), 0) as compensacion
+
+            FROM transacciones t
+            JOIN tipos_transaccion tp ON t.tipo_id = tp.id
+            WHERE t.fecha_hora >= $1  -- <--- ESTO ES LA MAGIA (Filtra por turno, no por día)
+        `;
+
+        const result = await pool.query(query, [fechaInicio]);
+        res.json({ success: true, datos: result.rows[0] });
+
+    } catch (error) {
+        console.error('Error calculando automáticos:', error);
+        res.status(500).json({ success: false, message: 'Error al calcular totales' });
+    }
+});
+
+// --- RUTA: DETALLE DE COMPENSACIONES DEL DÍA ---
+app.get('/api/financiero/corresponsal/compensaciones-hoy', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                to_char(t.fecha_hora, 'HH12:MI AM') as hora,
+                u.nombre as usuario,
+                t.descripcion,
+                t.monto
+            FROM transacciones t
+            JOIN tipos_transaccion tp ON t.tipo_id = tp.id
+            JOIN usuarios u ON t.usuario_id = u.id
+            WHERE DATE(t.fecha_hora) = CURRENT_DATE 
+              AND tp.nombre ILIKE '%Compensación%'
+            ORDER BY t.fecha_hora DESC
+        `;
+        const result = await pool.query(query);
+        res.json({ success: true, datos: result.rows });
+    } catch (error) {
+        console.error('Error fetching compensations:', error);
+        res.status(500).json({ success: false, message: 'Error al consultar datos' });
+    }
+});
+
 // Iniciar servidor
 app.listen(PORT, () => {
     console.log(`🏦 Sistema Financiero corriendo en: http://localhost:${PORT}`);
