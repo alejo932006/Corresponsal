@@ -89,21 +89,28 @@
         </div>
 
         <div class="card-table">
+            <div class="table-tabs" style="margin-bottom: 15px; display: flex; gap: 10px;">
+                <button class="btn-tab active" id="btnPendientes" onclick="cambiarFiltro('PENDIENTE')" 
+                        style="padding: 8px 15px; border: none; background: #1976d2; color: white; border-radius: 4px; cursor: pointer;">
+                    <i class="fa-solid fa-clock"></i> Pendientes
+                </button>
+                <button class="btn-tab" id="btnPagadas" onclick="cambiarFiltro('PAGADA')" 
+                        style="padding: 8px 15px; border: none; background: #e0e0e0; color: #333; border-radius: 4px; cursor: pointer;">
+                    <i class="fa-solid fa-check-double"></i> Historial Pagadas
+                </button>
+            </div>
             <table>
                 <thead>
                     <tr>
-                        <th>FECHA INGRESO</th>
-                        <th>PROVEEDOR</th>
+                        <th>FECHA</th> <th>PROVEEDOR</th>
                         <th>NIT</th>
                         <th>FACTURA</th>
-                        <th>PLAZO</th>
-                        <th>VENCE</th>
-                        <th class="text-right">VALOR</th>
+                        <th>VENCE / PAGO</th> <th class="text-right">VALOR</th>
                         <th class="text-center">ACCIÓN</th>
                     </tr>
                 </thead>
                 <tbody id="tablaCuerpo">
-                    </tbody>
+                </tbody>
             </table>
         </div>
     </div>

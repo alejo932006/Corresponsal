@@ -3,184 +3,308 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Usuarios</title>
-    <link rel="stylesheet" href="css/dashboard.css">
-    <link rel="stylesheet" href="css/transaccion.css">
+    <title>Usuarios | Corresponsal Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #009688;
+            --primary-dark: #00796b;
+            --secondary: #263238;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-light: #95a5a6;
+            --gradient: linear-gradient(135deg, #4DB6AC 0%, #009688 100%);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            color: var(--text-main);
+        }
+
+        /* --- NAVBAR MODERNA --- */
+        .navbar {
+            background: var(--card-bg);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .brand i { color: var(--primary); }
+
+        .btn-back {
+            text-decoration: none;
+            color: var(--text-light);
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-back:hover { color: var(--primary); }
+
+        /* --- CONTENEDOR PRINCIPAL --- */
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            margin-bottom: 30px;
+        }
+
+        .header-title h1 { margin: 0; font-size: 1.8rem; color: var(--secondary); }
+        .header-title p { margin: 5px 0 0; color: var(--text-light); font-size: 0.95rem; }
+
+        .btn-new {
+            background: var(--gradient);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 150, 136, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-new:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 150, 136, 0.4); }
+
+        /* --- GRID DE USUARIOS --- */
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        /* --- TARJETA PRO --- */
+        .user-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            position: relative;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.02);
+            overflow: hidden;
+        }
+
+        .user-card:hover {
+            transform: translateY(-7px);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.12);
+        }
+
+        /* Decoración de fondo en la tarjeta */
+        .card-bg-decoration {
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 100px;
+            height: 100px;
+            background: var(--gradient);
+            opacity: 0.1;
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .card-content { position: relative; z-index: 1; text-align: center; }
+
+        .avatar-container {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            box-shadow: 0 8px 20px rgba(0, 150, 136, 0.25);
+        }
+
+        .user-name { margin: 0; font-size: 1.2rem; font-weight: 600; color: var(--secondary); }
+        .user-handle { margin: 5px 0 15px; color: var(--text-light); font-size: 0.9rem; }
+        
+        .role-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .role-admin { background: #e3f2fd; color: #1976d2; }
+        .role-user { background: #e0f2f1; color: #00897b; }
+
+        .card-actions {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+            color: white;
+            font-size: 1rem;
+        }
+        .btn-key { background: #ffb74d; box-shadow: 0 4px 10px rgba(255, 183, 77, 0.3); }
+        .btn-key:hover { background: #ff9800; transform: scale(1.1); }
+        
+        .btn-del { background: #ef5350; box-shadow: 0 4px 10px rgba(239, 83, 80, 0.3); }
+        .btn-del:hover { background: #d32f2f; transform: scale(1.1); }
+
+        /* --- MODAL ESTILIZADO --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(38, 50, 56, 0.6);
+            backdrop-filter: blur(5px); /* Efecto vidrio borroso */
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+
+        .modal-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--secondary); font-size: 0.9rem; }
+        
+        .input-style {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #f0f2f5;
+            border-radius: 10px;
+            font-family: inherit;
+            transition: 0.3s;
+            box-sizing: border-box; /* Importante para que no se salga */
+        }
+        .input-style:focus { border-color: var(--primary); outline: none; background: #fafafa; }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: var(--gradient);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+        .btn-submit:hover { opacity: 0.9; transform: scale(0.98); }
+
+    </style>
 </head>
 <body>
 
-    <nav class="sidebar">
+    <nav class="navbar">
         <div class="brand">
-            <h3>🚀 Mi Corresponsal</h3>
+            <i class="fa-solid fa-layer-group"></i> CORRESPONSAL
         </div>
-    
-        <div class="user-profile">
-            <div class="avatar-circle">U</div>
-            <div class="user-info">
-                <p>Conectado como:</p>
-                <span id="nombreUsuario">Cargando...</span>
-            </div>
-        </div>
-    
-        <ul>
-            <div class="menu-category">Principal</div>
-            
-            <li>
-                <a href="dashboard.html"> <span class="icon">📊</span> Resumen
-                </a>
-            </li>
-    
-            <div class="menu-category">Operaciones</div>
-            
-            <li>
-                <a href="transaccion.html">
-                    <span class="icon">💰</span> Transacciones
-                </a>
-            </li>
-            <li>
-                <a href="compensaciones.html">
-                    <span class="icon">⚖️</span> Compensar Cupo
-                </a>
-            </li>
-    
-            <div class="menu-category">Gestión</div>
-            
-            <li>
-                <a href="reportes.html">
-                    <span class="icon">📝</span> Historial & Reportes
-                </a>
-            </li>
-            <li>
-                <a href="caja.html">
-                    <span class="icon">🔐</span> Arqueo de Caja
-                </a>
-            </li>
-            <li>
-                <a href="usuarios.html" class="active">
-                    <span class="icon">👤</span> Usuarios
-                </a>
-            </li>
-            <li>
-                <a href="estadisticas.html">
-                    <span class="icon">📈</span> Métricas en Vivo
-                </a>
-            </li>
-        </ul>
-    
-        <div class="logout-container">
-            <a href="#" id="btnLogout" class="danger">
-                <span class="icon">🚪</span> Cerrar Sesión
-            </a>
-        </div>
+        <a href="dashboard.html" class="btn-back">
+            <i class="fa-solid fa-arrow-left-long"></i> Volver al Dashboard
+        </a>
     </nav>
 
-    <main class="main-content">
-        <div class="pos-container">
-            <section class="panel-izquierdo">
-                <div class="card-glass">
-                    <header class="card-header">
-                        <h2>👤 Nuevo Usuario</h2>
-                    </header>
-                    <form id="formUsuario">
-                        <div class="form-group">
-                            <label>Nombre de Usuario</label>
-                            <input type="text" id="newUser" class="input-std" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Contraseña</label>
-                            <input type="password" id="newPass" class="input-std" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Rol</label>
-                            <select id="newRol" class="input-std">
-                                <option value="cajero">Cajero</option>
-                                <option value="admin">Administrador</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn-action-add" style="height:50px; margin-top:10px;">Crear Usuario</button>
-                    </form>
-                </div>
-            </section>
-
-            <section class="panel-derecho">
-                <div class="ticket-card">
-                    <header class="ticket-header">
-                        <h3>Usuarios del Sistema</h3>
-                    </header>
-                    <div class="ticket-body">
-                        <div id="listaUsuarios" class="items-list">
-                            </div>
-                    </div>
-                </div>
-            </section>
+    <div class="container">
+        
+        <div class="header-section">
+            <div class="header-title">
+                <h1>Gestión de Usuarios</h1>
+                <p>Administra tu equipo de trabajo con seguridad.</p>
+            </div>
+            <button onclick="abrirModal()" class="btn-new">
+                <i class="fa-solid fa-plus"></i> Nuevo Usuario
+            </button>
         </div>
-    </main>
 
-    <script>
-        // Lógica simple incrustada para no crear otro archivo JS
-        document.addEventListener('DOMContentLoaded', () => {
-            const usuario = localStorage.getItem('usuario_nombre');
-            const rol = localStorage.getItem('usuario_rol');
+        <div id="gridUsuarios" class="users-grid">
+            </div>
+
+    </div>
+
+    <div id="modalUsuario" class="modal-overlay">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+                <h2 style="margin:0; color:var(--secondary);">Crear Usuario</h2>
+                <button onclick="cerrarModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#999;">&times;</button>
+            </div>
             
-            document.getElementById('nombreUsuario').textContent = usuario;
+            <form id="formCrear">
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="nombre" class="input-style" placeholder="Ej: Maria Gonzalez" required>
+                </div>
+                <div class="form-group">
+                    <label>Usuario (Login)</label>
+                    <input type="text" id="usuario" class="input-style" placeholder="Ej: maria.g" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="password" class="input-style" placeholder="••••••••" required>
+                </div>
+                <div class="form-group">
+                    <label>Rol de Acceso</label>
+                    <select id="rol" class="input-style">
+                        <option value="user">Usuario (Cajero)</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit">GUARDAR USUARIO</button>
+            </form>
+        </div>
+    </div>
 
-            // Seguridad: Si no es admin, sacarlo de aquí
-            if (rol !== 'admin') {
-                alert("Acceso denegado: Solo administradores.");
-                window.location.href = 'dashboard.html';
-                return;
-            }
-
-            cargarUsuarios();
-
-            // Logout
-            document.getElementById('btnLogout').addEventListener('click', () => {
-                localStorage.clear();
-                window.location.href = 'login.html';
-            });
-
-            // Crear Usuario
-            document.getElementById('formUsuario').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const nombre = document.getElementById('newUser').value;
-                const password = document.getElementById('newPass').value;
-                const rol = document.getElementById('newRol').value;
-
-                const res = await fetch('/api/usuarios', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ nombre, password, rol })
-                });
-                
-                if((await res.json()).success) {
-                    alert("Usuario creado");
-                    document.getElementById('formUsuario').reset();
-                    cargarUsuarios();
-                } else {
-                    alert("Error creando usuario");
-                }
-            });
-        });
-
-        async function cargarUsuarios() {
-            const res = await fetch('/api/usuarios');
-            const data = await res.json();
-            const lista = document.getElementById('listaUsuarios');
-            lista.innerHTML = '';
-
-            data.usuarios.forEach(u => {
-                const div = document.createElement('div');
-                div.className = 'op-item';
-                div.innerHTML = `
-                    <div class="op-info">
-                        <h4>${u.nombre}</h4>
-                        <p>${u.rol.toUpperCase()}</p>
-                    </div>
-                    <div class="op-amount">🆔 ${u.id}</div>
-                `;
-                lista.appendChild(div);
-            });
-        }
-    </script>
+    <script src="js/usuarios.js"></script>
 </body>
 </html>

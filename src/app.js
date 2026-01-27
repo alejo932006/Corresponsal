@@ -857,6 +857,45 @@ app.post('/api/admin/abrir-cajon', (req, res) => {
     }
 });
 
+// ==========================================
+// GESTIÓN DE USUARIOS (CORRESPONSAL)
+// ==========================================
+
+// ELIMINAR USUARIO
+// ==========================================
+// RUTAS FALTANTES PARA GESTIÓN DE USUARIOS
+// ==========================================
+
+// 1. ELIMINAR USUARIO
+app.delete('/api/usuarios/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM usuarios WHERE id = $1', [id]);
+        res.json({ success: true, message: 'Usuario eliminado correctamente' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error al eliminar usuario' });
+    }
+});
+
+// 2. CAMBIAR CONTRASEÑA
+app.put('/api/usuarios/:id/clave', async (req, res) => {
+    const { id } = req.params;
+    const { password } = req.body;
+    
+    try {
+        // Encriptamos la nueva contraseña
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(password, salt);
+        
+        await pool.query('UPDATE usuarios SET password_hash = $1 WHERE id = $2', [hash, id]);
+        res.json({ success: true, message: 'Contraseña actualizada' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error al actualizar contraseña' });
+    }
+});
+
 const PORT = 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);

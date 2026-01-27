@@ -1078,17 +1078,23 @@ app.get('/api/financiero/erp/proveedores', async (req, res) => {
 // ==========================================
 
 // 1. OBTENER LISTA DE COMPRAS
+// 1. OBTENER LISTA DE COMPRAS (Con filtro de estado)
 app.get('/api/financiero/compras', async (req, res) => {
+    const estado = req.query.estado || 'PENDIENTE'; // Por defecto trae las pendientes
+    
     try {
         const query = `
             SELECT id, nombre_proveedor, nit, numero_factura, valor, 
                    to_char(fecha_ingreso, 'YYYY-MM-DD') as fecha_ingreso,
                    plazo_dias,
-                   to_char(fecha_vencimiento, 'YYYY-MM-DD') as fecha_vencimiento
+                   to_char(fecha_vencimiento, 'YYYY-MM-DD') as fecha_vencimiento,
+                   estado,
+                   to_char(fecha_pago, 'YYYY-MM-DD HH12:MI AM') as fecha_pago_formato
             FROM financiero_compras
+            WHERE estado = $1
             ORDER BY fecha_ingreso DESC, id DESC LIMIT 100
         `;
-        const result = await pool.query(query);
+        const result = await pool.query(query, [estado]);
         res.json({ success: true, datos: result.rows });
     } catch (error) {
         console.error(error);
@@ -1115,7 +1121,23 @@ app.post('/api/financiero/compras', async (req, res) => {
     }
 });
 
-// 3. OBTENER ALERTAS (Vencen en 3 días o menos, o ya vencieron)
+// NUEVA RUTA: MARCAR COMO PAGADA
+app.put('/api/financiero/compras/:id/pagar', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query(`
+            UPDATE financiero_compras 
+            SET estado = 'PAGADA', fecha_pago = NOW() 
+            WHERE id = $1
+        `, [id]);
+        res.json({ success: true, message: 'Factura marcada como pagada' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error al actualizar estado' });
+    }
+});
+
+// ACTUALIZADO: Solo muestra las que NO están pagadas
 app.get('/api/financiero/compras/alertas', async (req, res) => {
     try {
         const query = `
@@ -1123,7 +1145,8 @@ app.get('/api/financiero/compras/alertas', async (req, res) => {
                    to_char(fecha_vencimiento, 'YYYY-MM-DD') as fecha_vencimiento,
                    (fecha_vencimiento - CURRENT_DATE) as dias_restantes
             FROM financiero_compras
-            WHERE fecha_vencimiento <= (CURRENT_DATE + 3) -- 3 días a futuro
+            WHERE fecha_vencimiento <= (CURRENT_DATE + 3) 
+            AND (estado = 'PENDIENTE' OR estado IS NULL) -- <--- ESTA ES LA CLAVE
             ORDER BY fecha_vencimiento ASC
         `;
         const result = await pool.query(query);
@@ -1354,6 +1377,85 @@ app.get('/api/financiero/corresponsal/compensaciones-hoy', async (req, res) => {
     } catch (error) {
         console.error('Error fetching compensations:', error);
         res.status(500).json({ success: false, message: 'Error al consultar datos' });
+    }
+});
+
+// ==========================================
+// MÓDULO GESTIÓN DE USUARIOS Y SEGURIDAD
+// ==========================================
+
+// 1. LISTAR USUARIOS
+app.get('/api/financiero/usuarios', async (req, res) => {
+    try {
+        // Mostramos todos menos el password
+        const result = await pool.query('SELECT id, usuario, nombre_completo, estado FROM financiero_usuarios ORDER BY id ASC');
+        res.json({ success: true, datos: result.rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error cargando usuarios' });
+    }
+});
+
+// 2. CREAR USUARIO (Sin roles, simple)
+app.post('/api/financiero/usuarios', async (req, res) => {
+    const { nombre, usuario, password } = req.body;
+    try {
+        // Encriptar contraseña
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(password, salt);
+
+        await pool.query(
+            `INSERT INTO financiero_usuarios (nombre_completo, usuario, password_hash) VALUES ($1, $2, $3)`,
+            [nombre, usuario, hash]
+        );
+        res.json({ success: true, message: 'Usuario creado exitosamente' });
+    } catch (error) {
+        console.error(error);
+        if(error.code === '23505') return res.json({ success: false, message: 'El usuario ya existe' });
+        res.status(500).json({ success: false, message: 'Error creando usuario' });
+    }
+});
+
+// 3. CAMBIAR CLAVE DE USUARIO (Reset)
+app.put('/api/financiero/usuarios/:id/clave', async (req, res) => {
+    const { password } = req.body;
+    try {
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(password, salt);
+
+        await pool.query('UPDATE financiero_usuarios SET password_hash = $1 WHERE id = $2', [hash, req.params.id]);
+        res.json({ success: true, message: 'Contraseña actualizada' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error actualizando clave' });
+    }
+});
+
+// 4. ELIMINAR USUARIO
+app.delete('/api/financiero/usuarios/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM financiero_usuarios WHERE id = $1', [req.params.id]);
+        res.json({ success: true, message: 'Usuario eliminado' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error eliminando usuario' });
+    }
+});
+
+// 5. CAMBIAR CLAVE ADMINISTRATIVA GLOBAL
+app.post('/api/financiero/config/clave-admin', async (req, res) => {
+    const { nueva_clave } = req.body;
+    try {
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(nueva_clave, salt);
+
+        // Usamos "UPSERT" (Insertar o Actualizar si ya existe)
+        await pool.query(`
+            INSERT INTO financiero_config (clave, valor) VALUES ('clave_admin', $1)
+            ON CONFLICT (clave) DO UPDATE SET valor = $1
+        `, [hash]);
+
+        res.json({ success: true, message: 'Clave Administrativa actualizada correctamente' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error guardando clave admin' });
     }
 });
 

@@ -1,4 +1,4 @@
-/* public_financiero/js/compras.js */
+let estadoActual = 'PENDIENTE';
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Validar Sesión
@@ -71,30 +71,99 @@ function calcularVencimiento() {
 }
 
 // --- CARGAR TABLA PRINCIPAL ---
+// --- FUNCIÓN DE CARGA ACTUALIZADA ---
 async function cargarCompras() {
     try {
-        const res = await fetch('/api/financiero/compras');
+        // Ahora pedimos al backend según el estado actual
+        const res = await fetch(`/api/financiero/compras?estado=${estadoActual}`);
         const data = await res.json();
         const tbody = document.getElementById('tablaCuerpo');
         tbody.innerHTML = '';
 
+        if(data.datos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay facturas en esta sección.</td></tr>';
+            return;
+        }
+
         data.datos.forEach(f => {
             const tr = document.createElement('tr');
+            
+            // Lógica para definir qué mostrar en la columna de fechas y acciones
+            let infoFecha = '';
+            let botonesAccion = '';
+
+            if (estadoActual === 'PENDIENTE') {
+                // Si es pendiente, mostramos vencimiento y botón de pagar
+                infoFecha = `<span style="color: #d32f2f; font-weight:bold;">${f.fecha_vencimiento}</span>`;
+                botonesAccion = `
+                    <button class="btn-pay" onclick="marcarPagada(${f.id})" title="Marcar como Pagada" style="background:#2e7d32; color:white; border:none; padding:5px 10px; border-radius:4px; margin-right:5px; cursor:pointer;">
+                        <i class="fa-solid fa-check"></i>
+                    </button>
+                    <button class="btn-delete" onclick="eliminarCompra(${f.id})"><i class="fa-solid fa-trash"></i></button>
+                `;
+            } else {
+                // Si es pagada, mostramos cuándo se pagó y solo botón borrar (opcional)
+                infoFecha = `<span style="color: #2e7d32; font-weight:bold;">Pagado: ${f.fecha_pago_formato || '---'}</span>`;
+                botonesAccion = `<i class="fa-solid fa-check-double" style="color:#2e7d32;"></i>`;
+            }
+
             tr.innerHTML = `
                 <td>${f.fecha_ingreso}</td>
                 <td style="font-weight:bold;">${f.nombre_proveedor}</td>
                 <td>${f.nit}</td>
                 <td>${f.numero_factura}</td>
-                <td class="text-center">${f.plazo_dias} días</td>
-                <td style="color: #d32f2f; font-weight:bold;">${f.fecha_vencimiento}</td>
+                <td class="text-center">${infoFecha}</td>
                 <td class="text-right">${fmt(f.valor)}</td>
                 <td class="text-center">
-                    <button class="btn-delete" onclick="eliminarCompra(${f.id})"><i class="fa-solid fa-trash"></i></button>
+                    ${botonesAccion}
                 </td>
             `;
             tbody.appendChild(tr);
         });
     } catch(e) { console.error(e); }
+}
+
+// --- NUEVAS FUNCIONES ---
+
+function cambiarFiltro(nuevoEstado) {
+    estadoActual = nuevoEstado;
+    
+    // Actualizar estilos de los botones (UI)
+    const btnPend = document.getElementById('btnPendientes');
+    const btnPag = document.getElementById('btnPagadas');
+    
+    if(nuevoEstado === 'PENDIENTE') {
+        btnPend.style.background = '#1976d2'; btnPend.style.color = 'white';
+        btnPag.style.background = '#e0e0e0'; btnPag.style.color = '#333';
+    } else {
+        btnPend.style.background = '#e0e0e0'; btnPend.style.color = '#333';
+        btnPag.style.background = '#2e7d32'; btnPag.style.color = 'white';
+    }
+
+    cargarCompras();
+}
+
+async function marcarPagada(id) {
+    if(!confirm('¿Confirmas que esta factura ya fue pagada? Se moverá al historial.')) return;
+
+    try {
+        const res = await fetch(`/api/financiero/compras/${id}/pagar`, {
+            method: 'PUT'
+        });
+        const data = await res.json();
+        
+        if(data.success) {
+            // Recargamos la lista (la factura desaparecerá de pendientes)
+            cargarCompras();
+            checkAlertas(); // Actualizamos las alertas por si esa estaba vencida
+            alert('Factura marcada como pagada.');
+        } else {
+            alert('Error al actualizar.');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Error de conexión.');
+    }
 }
 
 function eliminarCompra(id) {
