@@ -58,6 +58,101 @@ document.addEventListener('DOMContentLoaded', () => {
             filtrarTipos(categoriaSeleccionada);
         });
     });
+
+    // --- NUEVO: EVENTO BOTÓN ABRIR CAJÓN ---
+    const btnCajon = document.getElementById('btnAbrirCajon');
+    if (btnCajon) {
+        btnCajon.addEventListener('click', async () => {
+            // 1. Pedir contraseña
+            const password = prompt("🔒 SEGURIDAD\n\nEsta acción requiere autorización.\nIngrese contraseña de Administrador:");
+            
+            if (!password) return; // Si cancela, no hacemos nada
+
+            try {
+                // 2. Verificar con el servidor
+                const res = await fetch('/api/admin/verificar-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    // 3. ¡Si es correcto, disparamos el cajón!
+                    abrirCajonMonedero();
+                } else {
+                    alert("⛔ ACCESO DENEGADO: Contraseña incorrecta.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("Error de conexión verificando permisos.");
+            }
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        // Si presiona ENTER y está en el input de monto o descripción -> Agregar
+        if (e.key === 'Enter') {
+            const foco = document.activeElement;
+            if (foco.id === 'inputMontoVisual' || foco.id === 'inputDesc') {
+                e.preventDefault();
+                agregarAlCarrito();
+            }
+        }
+    
+        // Si presiona F2 -> Finalizar / Cobrar
+        if (e.key === 'F2') {
+            e.preventDefault();
+            // Solo si hay algo en el carrito
+            if(carritoCliente.length > 0) abrirModalCobro();
+        }
+        
+        // Si presiona ESC -> Cerrar Modales
+        if (e.key === 'Escape') {
+            document.getElementById('modalCobro').style.display = 'none';
+            document.getElementById('modalTipos').style.display = 'none';
+            document.getElementById('modalHistorial').style.display = 'none';
+        }
+    });
+
+    // EFECTO DE ONDA EXPANSIVA (RIPPLE)
+    document.getElementById('btnAgregar').addEventListener('click', function(e) {
+        const button = e.currentTarget;
+
+        // 1. Crear el elemento círculo
+        const circle = document.createElement('span');
+        const diameter = Math.max(button.clientWidth, button.clientHeight);
+        const radius = diameter / 2;
+
+        // 2. Calcular posición exacta del clic dentro del botón
+        const rect = button.getBoundingClientRect();
+        circle.style.width = circle.style.height = `${diameter}px`;
+        circle.style.left = `${e.clientX - rect.left - radius}px`;
+        circle.style.top = `${e.clientY - rect.top - radius}px`;
+        
+        // 3. Agregar clase para animar
+        circle.classList.add('ripple');
+
+        // 4. Limpiar ondas viejas (opcional, para mantener el DOM limpio)
+        const ripple = button.getElementsByClassName('ripple')[0];
+        if (ripple) {
+            ripple.remove();
+        }
+
+        // 5. Insertar en el botón
+        button.appendChild(circle);
+    });
+
+    // Activar el input al hacer clic en el contenedor (icono o label)
+    const grupoDesc = document.querySelector('.input-group-desc');
+    if(grupoDesc){
+        grupoDesc.addEventListener('click', () => {
+            document.getElementById('inputDesc').focus();
+        });
+    }
+        
 });
 
 // ==========================================
@@ -324,7 +419,7 @@ async function guardarTodasLasOperaciones() {
 
         // Si todo sale bien
         alert('✅ ¡Cliente procesado correctamente!');
-        
+        abrirCajonMonedero();
         // Limpieza y cierre
         carritoCliente = [];
         renderizarCarrito();
@@ -358,7 +453,7 @@ async function cargarOpciones() {
         const data = await res.json();
 
         if (data.success) {
-            // 1. CARGAR BANCOS (Igual que siempre)
+            // 1. CARGAR BANCOS
             const grid = document.getElementById('gridBancos');
             const hiddenInput = document.getElementById('selectBanco');
             grid.innerHTML = '';
@@ -370,6 +465,8 @@ async function cargarOpciones() {
                 
                 let icon = '🏦';
                 const n = banco.nombre.toLowerCase();
+                
+                // Asignar iconos
                 if(n.includes('bancolombia')) icon = '🟨';
                 else if(n.includes('nequi')) icon = '📱';
                 else if(n.includes('daviplata')) icon = '🔴';
@@ -377,16 +474,26 @@ async function cargarOpciones() {
 
                 div.innerHTML = `<span class="bank-icon">${icon}</span><span class="bank-name">${banco.nombre}</span>`;
 
+                // Evento Click Manual
                 div.addEventListener('click', () => {
                     document.querySelectorAll('.bank-option').forEach(b => b.classList.remove('selected'));
                     div.classList.add('selected');
                     hiddenInput.value = banco.id;
                 });
+
                 grid.appendChild(div);
+
+                // --- NUEVO: AUTO-SELECCIONAR BANCOLOMBIA ---
+                // Si el nombre contiene "bancolombia", lo seleccionamos de una vez
+                if (n.includes('bancolombia')) {
+                    div.classList.add('selected'); // Marcado visual
+                    hiddenInput.value = banco.id;  // Valor lógico
+                }
             });
 
-            // 2. GUARDAR TIPOS EN MEMORIA (Ya no renderizamos select ni radios)
+            // 2. GUARDAR TIPOS EN MEMORIA
             todosLosTipos = data.tipos;
+            renderizarBotonesTipos(); // (Si estás usando la versión de botones que hicimos antes)
         }
     } catch (error) { console.error(error); }
 }
@@ -788,35 +895,82 @@ function cerrarModalTipos() {
 }
 
 function seleccionarTipoDesdeModal(tipo) {
-    // 1. Guardar valores
+    // 1. GUARDAR VALORES EN INPUTS OCULTOS (Lógica del Sistema)
     document.getElementById('inputTipoSeleccionado').value = tipo.id;
     document.getElementById('inputCategoriaSeleccionada').value = tipo.categoria;
 
-    // 2. Actualizar UI (Mostrar selección)
+    // 2. ACTUALIZAR UI VISUAL (El recuadro pequeño "Seleccionado")
     document.getElementById('displaySeleccion').style.display = 'flex';
     document.getElementById('txtSeleccion').textContent = tipo.nombre;
     
-    // Icono y color visual
     const iconDisplay = document.getElementById('iconSeleccion');
+    const boxDisplay = document.getElementById('displaySeleccion');
+
     if (tipo.categoria === 'RECAUDO') {
         iconDisplay.textContent = '📥';
-        document.getElementById('displaySeleccion').style.background = '#f0fdf4'; // Verde claro
-        document.getElementById('displaySeleccion').style.borderColor = '#bbf7d0';
+        boxDisplay.style.background = '#f0fdf4'; // Verde claro
+        boxDisplay.style.borderColor = '#bbf7d0';
     } else {
         iconDisplay.textContent = '📤';
-        document.getElementById('displaySeleccion').style.background = '#fef2f2'; // Rojo claro
-        document.getElementById('displaySeleccion').style.borderColor = '#fecaca';
+        boxDisplay.style.background = '#fef2f2'; // Rojo claro
+        boxDisplay.style.borderColor = '#fecaca';
     }
 
-    // 3. Cerrar modal y enfocar monto
+    // 3. TRANSFORMACIÓN DEL BOTÓN PRINCIPAL (Lógica de Estilos)
+    const btnAgregar = document.getElementById('btnAgregar');
+
+    // Cambiar de "Fantasma" a "Sólido"
+    btnAgregar.style.color = 'white';       
+    btnAgregar.style.border = 'none';       
+    btnAgregar.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+
+    if (tipo.categoria === 'RECAUDO') { 
+        // ESTILO VERDE (INGRESO)
+        btnAgregar.style.background = 'linear-gradient(135deg, #16a34a, #15803d)';
+        btnAgregar.style.setProperty('--pulse-color', 'rgba(22, 163, 74, 0.6)'); 
+        btnAgregar.innerHTML = '<span class="btn-icon">⬇️</span> <span class="btn-text">RECIBIR DINERO</span>';
+    } else { 
+        // ESTILO ROJO (EGRESO)
+        btnAgregar.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+        btnAgregar.style.setProperty('--pulse-color', 'rgba(220, 38, 38, 0.6)');
+        btnAgregar.innerHTML = '<span class="btn-icon">⬆️</span> <span class="btn-text">ENTREGAR DINERO</span>';
+    }
+
+    // 4. CERRAR MODAL Y ENFOCAR (Lo que se había perdido)
     cerrarModalTipos();
-    document.getElementById('inputMontoVisual').focus();
+    
+    // Pequeño delay para asegurar que el modal se vaya antes de enfocar
+    setTimeout(() => {
+        document.getElementById('inputMontoVisual').focus();
+    }, 100);
 }
 
 function limpiarSeleccionTipo() {
+    // 1. Limpiar los inputs ocultos (Lo que ya tenías)
     document.getElementById('inputTipoSeleccionado').value = '';
     document.getElementById('inputCategoriaSeleccionada').value = '';
     document.getElementById('displaySeleccion').style.display = 'none';
+
+    // 2. RESETEAR COLORES (Lo Nuevo)
+    const panelFormulario = document.querySelector('.highlight-box');
+    const btnAgregar = document.getElementById('btnAgregar');
+
+    btnAgregar.style.background = ''; // Vuelve al CSS (rgba...)
+    btnAgregar.style.color = '';      // Vuelve al CSS (Gris)
+    btnAgregar.style.border = '';     // Vuelve al CSS (Borde visible)
+    btnAgregar.style.boxShadow = '';  // Quita la sombra fuerte
+
+    // Volver al gris/blanco original
+    panelFormulario.style.backgroundColor = '#f8fafc'; 
+    panelFormulario.style.borderColor = '#e2e8f0';
+
+    btnAgregar.style.setProperty('--pulse-color', 'rgba(0,0,0,0)'); 
+    btnAgregar.innerHTML = '<span class="btn-icon">⬇️</span> <span class="btn-text">AGREGAR</span>';
+    
+    // Limpiar selección visual de los botones de tipo (si usaste mi código anterior)
+    document.querySelectorAll('.btn-tipo-opcion').forEach(b => {
+        b.classList.remove('sel-ingreso', 'sel-egreso');
+    });
 }
 
 // ==========================================
@@ -1092,3 +1246,69 @@ const btnLogout = document.getElementById('btnLogout');
             }
         });
     }
+
+// --- FUNCIÓN PARA ABRIR CAJÓN SIN FACTURA ---
+function abrirCajonMonedero() {
+    // 1. Creamos un iframe invisible (una mini ventana oculta)
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    // 2. Le metemos un contenido "vacío" pero con la estructura básica
+    // El punto (.) con color blanco es un truco para que el navegador crea que hay algo que imprimir
+    const contenido = `
+        <html>
+        <head>
+            <style>
+                @page { size: auto; margin: 0mm; } 
+                body { margin: 0; padding: 0; overflow: hidden; }
+            </style>
+        </head>
+        <body>
+            <div style="font-size:1px; color:white; opacity:0;">.</div>
+        </body>
+        </html>
+    `;
+
+    iframe.contentDocument.write(contenido);
+    iframe.contentDocument.close();
+
+    // 3. Ordenamos imprimir esa "nada"
+    try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+    } catch (e) {
+        console.error("Error intentando abrir cajón:", e);
+    }
+
+    // 4. Limpiamos la basura (borramos el iframe después de un segundo)
+    setTimeout(() => {
+        document.body.removeChild(iframe);
+    }, 1000);
+}
+
+function sumarMonto(valor) {
+    const hidden = document.getElementById('inputMonto');
+    const visual = document.getElementById('inputMontoVisual');
+    
+    // Obtener valor actual (si está vacío es 0)
+    let actual = parseInt(hidden.value) || 0;
+    let nuevoTotal = actual + valor;
+    
+    // Actualizar ambos inputs
+    hidden.value = nuevoTotal;
+    visual.value = new Intl.NumberFormat('es-CO', { 
+        style: 'currency', currency: 'COP', maximumFractionDigits: 0 
+    }).format(nuevoTotal);
+    
+    visual.focus(); // Mantener el foco
+}
+
+function limpiarMonto() {
+    document.getElementById('inputMonto').value = '';
+    document.getElementById('inputMontoVisual').value = '';
+    document.getElementById('inputMontoVisual').focus();
+}

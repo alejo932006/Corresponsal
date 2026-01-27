@@ -1,0 +1,172 @@
+body { 
+    font-family: 'Roboto', sans-serif; 
+    background-color: #fcfcfc; 
+    margin: 0; 
+}
+
+/* --- NAVBAR DAVIVIENDA (Rojo) --- */
+.navbar { 
+    background: #ED1C24; /* Rojo Oficial */
+    color: white; 
+    padding: 15px 30px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    box-shadow: 0 4px 12px rgba(237, 28, 36, 0.2);
+}
+
+.brand { 
+    font-size: 1.3rem; 
+    font-weight: 700; 
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    letter-spacing: 0.5px;
+}
+
+.logo-house {
+    background: white;
+    color: #ED1C24;
+    width: 35px; height: 35px;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 1rem;
+}
+
+/* Botón "Ir al Menú" */
+.nav-links { flex-grow: 1; display: flex; justify-content: center; }
+
+.nav-item {
+    text-decoration: none;
+    color: #ED1C24;
+    background: white; /* Botón blanco para resaltar en fondo rojo */
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex; align-items: center; gap: 8px;
+}
+.nav-item:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+
+.user-info { font-weight: 500; display: flex; align-items: center; gap: 15px; }
+
+.btn-logout { 
+    background: rgba(255,255,255,0.2); 
+    border: none; 
+    color: white; 
+    cursor: pointer; 
+    font-size: 1rem; 
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background 0.3s;
+}
+.btn-logout:hover { background: rgba(255,255,255,0.4); }
+
+.container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+
+/* --- HERO SECTION (Gradiente Rojo) --- */
+.saldo-hero {
+    background: linear-gradient(135deg, #ED1C24 0%, #b30006 100%);
+    border-radius: 15px;
+    padding: 30px 40px;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 25px rgba(237, 28, 36, 0.3);
+    position: relative;
+}
+
+.saldo-info span { color: rgba(255,255,255,0.8); font-size: 0.85rem; letter-spacing: 1px; }
+.saldo-info h1 { font-size: 3rem; margin: 5px 0 0 0; font-weight: 700; }
+
+.btn-ajuste {
+    background: white;
+    color: #ED1C24;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: transform 0.2s;
+}
+.btn-ajuste:hover { transform: scale(1.05); }
+
+/* --- FORMULARIO Y TABLAS --- */
+.card-form, .card-table { 
+    background: white; 
+    border-radius: 12px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+    padding: 30px; 
+    margin-bottom: 30px; 
+}
+
+.card-form h3 { margin-top: 0; color: #ED1C24; border-bottom: 2px solid #ffebee; padding-bottom: 15px; }
+
+/* Grid del formulario (Mismo espaciado) */
+.form-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 25px; align-items: flex-end; }
+.wide { grid-column: span 2; }
+.input-group label { display: block; font-size: 0.85rem; color: #555; font-weight: 600; margin-bottom: 8px; }
+.input-group input { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+.input-group input:focus { border-color: #ED1C24; outline: none; box-shadow: 0 0 0 3px rgba(237, 28, 36, 0.1); }
+
+.green-text { color: #2e7d32 !important; }
+.red-text { color: #c62828 !important; }
+
+/* Botón Guardar - Rojo */
+.btn-save { 
+    width: 100%; height: 46px;
+    background: #ED1C24; color: white; 
+    border: none; border-radius: 8px; 
+    font-weight: 700; cursor: pointer;
+    transition: background 0.3s; 
+}
+.btn-save:hover { background: #b30006; }
+
+/* Tabla */
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.95rem; }
+th { background: #ffebee; color: #ED1C24; padding: 15px; font-weight: 700; text-transform: uppercase; font-size: 0.8rem; border-bottom: 2px solid #ED1C24; }
+td { padding: 15px; border-bottom: 1px solid #f0f2f5; color: #333; }
+.text-right { text-align: right; }
+.val-saldo { font-weight: bold; color: #ED1C24; font-size: 1rem; }
+
+/* Modal */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(2px); }
+.modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
+.modal-header h2 { margin: 0; font-size: 1.2rem; color: #ED1C24; border-left: 4px solid #ED1C24; padding-left: 10px; }
+.close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.btn-cancel { background: #eee; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; }
+.btn-confirm { background: #ED1C24; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+/* Botones de Acción en Tabla */
+.btn-action {
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-left: 5px;
+    transition: transform 0.2s;
+}
+.btn-edit { background: #ffca28; color: #333; } /* Amarillo */
+.btn-delete { background: #ef5350; color: white; } /* Rojo */
+
+.btn-action:hover { transform: scale(1.1); }
+
+/* Botón cancelar edición (al lado de Guardar) */
+.btn-cancel-edit {
+    background: #9e9e9e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0 15px;
+    margin-left: 10px;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+.btn-cancel-edit:hover { background: #757575; }
+
+.text-center { text-align: center; }

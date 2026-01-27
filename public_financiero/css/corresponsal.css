@@ -1,0 +1,112 @@
+body { font-family: 'Roboto', sans-serif; background-color: #f0f2f5; margin: 0; }
+
+.navbar { 
+    background: #3949ab; /* Indigo */
+    color: white; padding: 15px 30px; 
+    display: flex; justify-content: space-between; align-items: center; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.brand { font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+.logo-circle { background: white; color: #3949ab; width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+
+/* Botón Menu */
+.nav-links { flex-grow: 1; display: flex; justify-content: center; }
+.nav-item { text-decoration: none; color: white; background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
+.nav-item:hover { background: rgba(255,255,255,0.4); }
+
+.user-info { display: flex; gap: 15px; font-weight: 500; align-items: center; }
+.btn-logout { background: none; border: none; color: white; font-size: 1.1rem; cursor: pointer; }
+
+/* Layout fluido para tabla ancha */
+.container-fluid { max-width: 95%; margin: 30px auto; }
+
+/* Hero */
+.saldo-hero {
+    background: linear-gradient(135deg, #3949ab 0%, #1a237e 100%);
+    border-radius: 12px; padding: 30px 40px; color: white;
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
+    box-shadow: 0 10px 25px rgba(57, 73, 171, 0.3);
+}
+.saldo-info h1 { font-size: 2.5rem; margin: 5px 0 0 0; }
+.btn-ajuste { background: white; color: #3949ab; padding: 10px 20px; border-radius: 20px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.btn-ajuste:hover { transform: scale(1.05); }
+
+/* Formulario Custom Grid */
+.card-form, .card-table { background: white; border-radius: 10px; padding: 25px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+.card-form h3 { color: #3949ab; border-bottom: 2px solid #e8eaf6; padding-bottom: 10px; margin-top: 0; }
+
+.form-grid-custom { 
+    display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; 
+}
+
+.input-group { flex: 1; min-width: 150px; display: flex; flex-direction: column; }
+.input-group label { font-size: 0.8rem; font-weight: 600; color: #555; margin-bottom: 5px; }
+.input-group input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+.input-group input:focus { border-color: #3949ab; outline: none; box-shadow: 0 0 0 3px rgba(57, 73, 171, 0.1); }
+
+.wide-desc { flex: 2; min-width: 300px; }
+
+.divider-label { 
+    width: 100%; font-size: 0.8rem; font-weight: bold; color: #888; 
+    border-bottom: 1px solid #eee; margin-top: 10px; padding-bottom: 5px; 
+}
+
+.green-text { color: #2e7d32 !important; }
+.red-text { color: #c62828 !important; }
+
+.btn-container-full { width: 100%; margin-top: 15px; }
+.btn-save { width: 100%; background: #3949ab; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+.btn-save:hover { background: #283593; }
+
+/* Tabla Responsiva */
+.table-responsive { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+th { background: #e8eaf6; color: #3949ab; padding: 12px; font-size: 0.75rem; border-bottom: 2px solid #c5cae9; text-align: right; }
+th:first-child, th:nth-child(2), th:nth-child(3) { text-align: left; } /* Texto izq para fecha/hora/usuario */
+
+td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 0.9rem; text-align: right; color: #333; }
+td:first-child, td:nth-child(2), td:nth-child(3) { text-align: left; }
+
+.col-entrada { color: #2e7d32; background: #f1f8e9; } /* Fondo suave verde */
+.col-salida { color: #c62828; background: #ffebee; } /* Fondo suave rojo */
+.col-saldo { color: #3949ab; font-weight: bold; background: #e8eaf6; }
+
+/* Modal */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 999; }
+.modal-content { background: white; padding: 25px; border-radius: 10px; width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.modal-header h2 { color: #3949ab; margin: 0; }
+.close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; float: right; }
+.modal-footer { margin-top: 20px; text-align: right; }
+.btn-confirm { background: #3949ab; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
+.btn-cancel { background: #eee; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; }
+
+/* Botones de Acción en Tabla */
+.btn-action {
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-left: 5px;
+    transition: transform 0.2s;
+}
+.btn-edit { background: #ffca28; color: #333; } /* Amarillo */
+.btn-delete { background: #ef5350; color: white; } /* Rojo */
+
+.btn-action:hover { transform: scale(1.1); }
+
+/* Botón cancelar edición (al lado de Guardar) */
+.btn-cancel-edit {
+    background: #9e9e9e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0 15px;
+    margin-left: 10px;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+.btn-cancel-edit:hover { background: #757575; }
+
+.text-center { text-align: center; }

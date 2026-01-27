@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Sistema Financiero</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/login2.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="login-container">
+        <div class="login-header">
+            <div class="icon-circle">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <h2>Sistema Financiero</h2>
+            <p>Ingresa tus credenciales para continuar</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="input-group">
+                <i class="fa-solid fa-user"></i>
+                <input type="text" id="usuario" placeholder="Usuario" required autocomplete="off">
+            </div>
+
+            <div class="input-group">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" id="password" placeholder="Contraseña" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" id="btnIngresar">
+                INGRESAR <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <div id="mensajeError" class="error-msg" style="display: none;"></div>
+        
+        <div class="login-footer">
+            <p>&copy; 2026 T-Shop Technology</p>
+        </div>
+    </div>
+
+    <script src="js/login2.js"></script>
+</body>
+</html>

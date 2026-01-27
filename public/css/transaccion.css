@@ -123,32 +123,83 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
 .bank-icon { font-size: 1.5rem; display: block; margin-bottom: 5px; }
 .bank-name { font-size: 0.75rem; font-weight: 700; line-height: 1.2; }
 
-/* Input Monto Gigante */
+
+/* --- ESTILOS DEL INPUT DE DINERO (Sutil y Transparente) --- */
+
 .highlight-box {
-    background: #f8fafc;
-    border-radius: 12px;
-    padding: 15px;
-    border: 1px solid #e2e8f0;
+    /* CAMBIO PRINCIPAL: Azul transparente suave (estilo Glass) */
+    background: rgba(59, 130, 246, 0.08); /* Azul tenue */
+    border: 2px solid rgba(59, 130, 246, 0.2); /* Borde azul sutil */
+    
+    border-radius: 16px;
+    padding: 20px;
     margin-bottom: 20px;
+    transition: all 0.3s ease;
+    
+    /* Control de desborde */
+    overflow: hidden; 
+    max-width: 100%;
 }
+
+/* Etiqueta superior "MONTO A PROCESAR" */
+.highlight-box label {
+    color: #64748b !important; /* Gris azulado (ya no blanco) */
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* Contenedor flexible */
 .input-wrapper-money {
     display: flex;
     align-items: center;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #0f172a;
+    width: 100%;
+    box-sizing: border-box;
 }
-.currency-symbol { color: #94a3b8; margin-right: 10px; }
+
+/* El símbolo de peso ($) */
+.currency-symbol { 
+    color: #3b82f6; /* Azul corporativo brillante */
+    font-size: 2rem; 
+    margin-right: 10px; 
+    flex-shrink: 0; 
+    text-shadow: none; /* Quitamos el brillo neón */
+}
+
+/* El input donde se escriben los números */
 .input-big-money {
     border: none;
     background: transparent;
+    
+    flex-grow: 1;
+    min-width: 0; 
     width: 100%;
-    font-size: inherit;
-    font-weight: inherit;
-    color: inherit;
+    
+    font-size: 3rem; 
+    font-weight: 800;
+    
+    /* CAMBIO DE COLOR: Texto oscuro para que se lea sobre el fondo claro */
+    color: #1e293b; /* Azul muy oscuro (casi negro) */
+    
     outline: none;
+    font-family: 'Courier New', monospace;
+    letter-spacing: -2px;
 }
-.input-big-money::placeholder { color: #cbd5e1; }
+
+.input-big-money::placeholder { 
+    color: #cbd5e1; /* Gris suave */
+    opacity: 0.8;
+}
+
+/* Efecto al hacer clic */
+.highlight-box:focus-within {
+    background: rgba(59, 130, 246, 0.15); /* Se oscurece un poquito al escribir */
+    border-color: #3b82f6;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
+}
 
 /* Inputs estándar y Botones */
 .input-std {
@@ -166,18 +217,61 @@ input:checked + .btn-egreso  { background: #fee2e2; color: #991b1b; box-shadow: 
 .col-desc { flex: 1; }
 .col-btn { flex: 0 0 120px; }
 
+/* --- BOTÓN DE AGREGAR (MODERNO + RIPPLE) --- */
 .btn-action-add {
-    width: 100%; height: 100%;
-    background: #0f172a; color: white;
-    border: none; border-radius: 8px;
-    font-weight: 600; cursor: pointer;
-    transition: 0.2s;
+    position: relative; /* Necesario para que la onda nazca dentro */
+    overflow: hidden;   /* Corta la onda cuando llega al borde */
+    
+    width: 100%; 
+    height: 100%;
+    
+    /* Degradado oscuro elegante por defecto */
+    background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+    color: white;
+    
+    border: none; 
+    border-radius: 12px;
+    
+    font-weight: 800; 
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.3);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    z-index: 1;
 }
-.btn-action-add:hover { background: #334155; }
 
-/* Animaciones */
-.animate-slide-down { animation: slideDown 0.3s ease-out; }
-@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+/* Efecto al pasar el mouse (Hover) */
+.btn-action-add:hover { 
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.4);
+    filter: brightness(1.1); /* Lo hace brillar un poco */
+}
+
+/* Efecto al presionar (Active) */
+.btn-action-add:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.3);
+}
+
+/* --- LA ANIMACIÓN DE LA ONDA (RIPPLE) --- */
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.7); /* Blanco semitransparente */
+    transform: scale(0);
+    animation: ripple-animation 0.6s linear;
+    pointer-events: none; /* Click traspasa la onda */
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(4); /* Crece 4 veces el tamaño del botón */
+        opacity: 0;          /* Se desvanece */
+    }
+}
 
 /* =========================================
    HISTORIAL MINI (Debajo del formulario)
@@ -1130,4 +1224,218 @@ select:focus, input:focus {
 @media (max-width: 600px) {
     .filter-container { flex-direction: column; }
     .input-icon-wrapper { width: 100%; flex: none !important; }
+}
+
+/* Bancolombia */
+.bank-option[data-id="1"] { /* Asumiendo que ID 1 es Bancolombia */
+    border-bottom: 4px solid #FDDA24; /* Amarillo Bancolombia */
+}
+
+/* Nequi */
+.bank-option[data-id="2"] { 
+    border-bottom: 4px solid #200020; /* Morado Oscuro Nequi */
+}
+
+/* Daviplata */
+.bank-option[data-id="3"] { 
+    border-bottom: 4px solid #ED1C24; /* Rojo Davivienda */
+}
+
+/* Efecto al seleccionar */
+.bank-option.selected {
+    background-color: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    border-color: inherit; /* Mantiene el color del borde inferior */
+}
+
+.quick-amounts {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.quick-amounts button {
+    background: #e2e8f0;
+    border: none;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quick-amounts button:hover {
+    background: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+.quick-amounts .btn-clear-monto {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* --- ESTILO MODERNO PARA CAMPO DE DESCRIPCIÓN --- */
+
+.input-group-desc {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 2px solid #cbd5e1; /* Borde gris azulado visible */
+    border-radius: 12px;
+    padding: 8px 15px; /* Espacio interno cómodo */
+    transition: all 0.2s ease;
+    height: 100%; /* Para que iguale la altura del botón de agregar */
+    cursor: text; /* Indica que se puede escribir */
+}
+
+/* Efecto cuando el usuario entra a escribir */
+.input-group-desc:focus-within {
+    border-color: #3b82f6; /* Borde Azul brillante */
+    background-color: #f8fafc;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); /* Resplandor azul */
+    transform: translateY(-2px); /* Se levanta un poquito */
+}
+
+.icon-desc {
+    font-size: 1.8rem;
+    margin-right: 15px;
+    filter: grayscale(100%);
+    opacity: 0.5;
+    transition: all 0.3s;
+}
+
+/* El icono cobra color al escribir */
+.input-group-desc:focus-within .icon-desc {
+    filter: grayscale(0%);
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.input-modern {
+    border: none;
+    background: transparent;
+    width: 100%;
+    
+    /* ESTOS 3 SON CLAVES PARA EVITAR EL DESBORDE */
+    box-sizing: border-box; /* El padding no aumenta el ancho */
+    min-width: 0;           /* Permite encogerse si falta espacio */
+    display: block;
+    
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #1e293b;
+    outline: none;
+    padding: 2px 0; 
+    
+    /* Evita que texto largo empuje el contenedor */
+    text-overflow: ellipsis; 
+}
+
+.input-modern::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+    font-style: italic;
+}
+
+/* --- NUEVO BOTÓN REDONDO (TIPO PÍLDORA) --- */
+.btn-round-action {
+    background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+    color: white;
+    border: none;
+    
+    /* LA CLAVE: 50px de radio lo hace completamente redondo en los bordes */
+    border-radius: 50px; 
+    
+    padding: 15px 40px; /* Menos alto, más ancho */
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    
+    /* Sombra suave para que flote */
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    
+    /* Para alinear icono y texto */
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-round-action:hover {
+    transform: translateY(-3px) scale(1.02); /* Se eleva un poco */
+    box-shadow: 0 15px 30px rgba(15, 23, 42, 0.3);
+    filter: brightness(1.1);
+}
+
+.btn-round-action:active {
+    transform: translateY(1px);
+    box-shadow: 0 5px 10px rgba(15, 23, 42, 0.2);
+}
+
+.btn-icon { font-size: 1.2rem; }
+.btn-text { letter-spacing: 1px; text-transform: uppercase; }
+
+/* --- CONTENEDOR (Ajustado para no empujar tanto el historial) --- */
+.action-container {
+    width: 100%;
+    display: flex;
+    justify-content: center; /* Centrado horizontal perfecto */
+    align-items: center;
+    
+    margin-top: 35px;    /* Espacio exacto desde la Referencia */
+    margin-bottom: 1px; /* Espacio exacto hasta el Historial */
+    
+    position: relative;
+    z-index: 10;
+}
+
+/* --- BOTÓN REDONDO (Estilo Inicial Transparente) --- */
+.btn-round-action {
+    /* ESTADO INICIAL: Transparente y sutil */
+    background: rgba(59, 130, 246, 0.05); /* Azul casi invisible */
+    color: #94a3b8; /* Gris claro (Texto neutro) */
+    border: 2px solid #e2e8f0; /* Borde suave */
+    
+    border-radius: 50px;
+    padding: 15px 40px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+    
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    
+    /* Sin onda expansiva visible al inicio */
+    --pulse-color: rgba(0,0,0,0);
+}
+
+/* Hover en estado neutro */
+.btn-round-action:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #64748b;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+/* La Onda Expansiva (Se mantiene igual, pero depende de la variable) */
+.btn-round-action::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: 50px;
+    z-index: -1;
+    box-shadow: 0 0 0 0 var(--pulse-color);
+    animation: pulse-radar 2s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+@keyframes pulse-radar {
+    to { box-shadow: 0 0 0 25px rgba(0, 0, 0, 0); }
 }

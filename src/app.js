@@ -88,13 +88,23 @@ app.post('/api/validar-admin', async (req, res) => {
 // --- RUTA PARA OBTENER EL RESUMEN DEL DASHBOARD ---
 app.get('/api/resumen', async (req, res) => {
     try {
-        // 1. Saldos Globales
+        // MODIFICACIÓN: Lógica de saldo para Deuda Interna
         const queryGlobales = `
-            SELECT 
-                SUM(t.monto * tp.afecta_banco) as saldo_banco,
-                SUM(CASE WHEN tp.genera_deuda = TRUE THEN t.monto ELSE 0 END) as deuda_empresa
-            FROM transacciones t
-            JOIN tipos_transaccion tp ON t.tipo_id = tp.id;
+        SELECT 
+            SUM(t.monto * tp.afecta_banco) as saldo_banco,
+            SUM(
+                CASE 
+                    -- Si es Compensación, RESTA a la deuda (El supermercado paga)
+                    WHEN tp.nombre ILIKE '%Compensaci%' THEN -t.monto
+                    
+                    -- Si es otro tipo que genera deuda (Facturas), SUMA
+                    WHEN tp.genera_deuda = TRUE THEN t.monto
+                    
+                    ELSE 0 
+                END
+            ) as deuda_empresa
+        FROM transacciones t
+        JOIN tipos_transaccion tp ON t.tipo_id = tp.id;
         `;
         const resGlobales = await pool.query(queryGlobales);
         
@@ -221,30 +231,35 @@ app.get('/api/mis-movimientos', async (req, res) => {
     }
 });
 
-// --- RUTA: APERTURA DE CAJA (MODIFICADA: SIN AUTO-CIERRE) ---
+// En src/app.js -> Busque app.post('/api/apertura-caja', ...)
+
 app.post('/api/apertura-caja', async (req, res) => {
     const { usuario_nombre, monto } = req.body;
     try {
         const userRes = await pool.query('SELECT id FROM usuarios WHERE nombre = $1', [usuario_nombre]);
         if (userRes.rows.length === 0) return res.status(400).json({ success: false, message: 'Usuario no encontrado' });
+        
         const userId = userRes.rows[0].id;
 
-        // 1. Verificar si hay caja abierta (DE CUALQUIER FECHA)
+        // 1. Buscamos SI EXISTE ALGUNA caja abierta (de cualquier fecha)
         const checkAbierta = await pool.query(`
             SELECT id, fecha::text as fecha_str FROM aperturas_caja 
             WHERE usuario_id = $1 AND estado = 'ABIERTA'
         `, [userId]);
 
-        // MODIFICADO: Si ya hay una abierta (incluso antigua), NO cerramos auto. Bloqueamos.
         if (checkAbierta.rows.length > 0) {
-            const caja = checkAbierta.rows[0];
+            const cajaAbierta = checkAbierta.rows[0];
+            
+            // --- CAMBIO: Bloqueo estricto ---
+            // Ya no cerramos automáticamente. Si hay una abierta (sea de hoy o de hace un año),
+            // obligamos al usuario a ir y cerrarla manualmente.
             return res.status(400).json({ 
                 success: false, 
-                message: `Ya tienes una caja abierta (del día ${caja.fecha_str}). Debes cerrarla manualmente antes de abrir una nueva.` 
+                message: `⛔ Tienes una caja PENDIENTE del día ${cajaAbierta.fecha_str}. Debes cerrarla manualmente antes de abrir una nueva.` 
             });
         }
 
-        // 2. Insertar nueva caja
+        // 2. Insertamos el NUEVO turno
         const query = `
             INSERT INTO aperturas_caja (usuario_id, fecha, monto_inicial, estado)
             VALUES ($1, CURRENT_DATE, $2, 'ABIERTA');
@@ -342,16 +357,17 @@ app.post('/api/reabrir-caja', async (req, res) => {
     }
 });
 
-// --- RUTA: OBTENER ESTADO DE CAJA (CRUCIAL PARA LA UI) ---
+// En src/app.js -> Busque app.get('/api/estado-caja', ...)
+
 app.get('/api/estado-caja', async (req, res) => {
     const { usuario } = req.query;
     try {
-        // MODIFICADO: Quitamos AND ac.fecha = CURRENT_DATE
-        // Así, si abriste ayer, te devolverá esa caja y el estado 'ABIERTA'
+        // --- CAMBIO: Quitamos "AND ac.fecha = CURRENT_DATE" ---
+        // Ahora traemos SIEMPRE el último estado, sin importar la fecha.
         const query = `
             SELECT ac.* FROM aperturas_caja ac
             JOIN usuarios u ON ac.usuario_id = u.id
-            WHERE u.nombre = $1
+            WHERE u.nombre = $1 
             ORDER BY ac.id DESC LIMIT 1 
         `;
         const resultado = await pool.query(query, [usuario]);
@@ -363,6 +379,7 @@ app.get('/api/estado-caja', async (req, res) => {
         const datos = resultado.rows[0];
         
         if (datos.estado === 'ABIERTA') {
+             // Calculamos saldo sumando movimientos desde ESA apertura
              const queryMovs = `
                 SELECT SUM(t.monto * tp.afecta_caja) as total
                 FROM transacciones t
@@ -384,14 +401,17 @@ app.get('/api/estado-caja', async (req, res) => {
     }
 });
 
-// --- RUTA: CERRAR CAJA ---
+// En src/app.js -> Busque app.post('/api/cerrar-caja', ...)
+
 app.post('/api/cerrar-caja', async (req, res) => {
     const { usuario_nombre, monto_fisico } = req.body;
+    
     try {
-        // MODIFICADO: Buscar la caja ABIERTA del usuario (sin importar fecha)
+        // 1. Buscamos la caja ABIERTA de este usuario (la última)
+        // --- CAMBIO: Quitamos "AND ac.fecha = CURRENT_DATE" ---
         const querySaldo = `
             SELECT 
-                ac.id,
+                ac.id,   -- Necesitamos el ID exacto para cerrar
                 ac.monto_inicial,
                 ac.hora_apertura
             FROM aperturas_caja ac
@@ -408,22 +428,22 @@ app.post('/api/cerrar-caja', async (req, res) => {
 
         const caja = resSaldo.rows[0];
         const inicial = parseFloat(caja.monto_inicial);
-        
-        // Sumar movimientos desde la apertura de ESA caja
+
+        // Calcular movimientos desde la hora de apertura
         const queryMovs = `
-            SELECT COALESCE(SUM(t.monto * tp.afecta_caja), 0) as movimientos
-            FROM transacciones t
-            JOIN tipos_transaccion tp ON t.tipo_id = tp.id
-            JOIN usuarios u ON t.usuario_id = u.id
-            WHERE u.nombre = $1 AND t.fecha_hora >= $2
+             SELECT COALESCE(SUM(t.monto * tp.afecta_caja), 0) as total
+             FROM transacciones t
+             JOIN tipos_transaccion tp ON t.tipo_id = tp.id
+             JOIN usuarios u ON t.usuario_id = u.id
+             WHERE u.nombre = $1 AND t.fecha_hora >= $2
         `;
         const resMovs = await pool.query(queryMovs, [usuario_nombre, caja.hora_apertura]);
         
-        const movs = parseFloat(resMovs.rows[0].movimientos);
+        const movs = parseFloat(resMovs.rows[0].total);
         const saldoSistema = inicial + movs;
         const diferencia = parseFloat(monto_fisico) - saldoSistema;
 
-        // Actualizar usando el ID específico de la caja
+        // 2. Actualizar la tabla usando el ID específico que encontramos
         const queryUpdate = `
             UPDATE aperturas_caja 
             SET fecha_cierre = CURRENT_TIMESTAMP,
@@ -749,6 +769,36 @@ app.get('/api/compensaciones', async (req, res) => {
         res.json({ success: true, movimientos: result.rows });
     } catch (e) {
         res.status(500).json({ success: false });
+    }
+});
+
+// --- RUTA: VERIFICAR PASSWORD ADMIN (Para abrir cajón) ---
+app.post('/api/admin/verificar-password', async (req, res) => {
+    const { password } = req.body;
+    try {
+        // 1. Buscamos las contraseñas de TODOS los administradores
+        const result = await pool.query("SELECT password_hash FROM usuarios WHERE rol = 'admin'");
+        
+        let accesoConcedido = false;
+
+        // 2. Probamos la clave ingresada contra cada administrador encontrado
+        for (const user of result.rows) {
+            const match = await bcrypt.compare(password, user.password_hash);
+            if (match) {
+                accesoConcedido = true;
+                break; // ¡Encontramos coincidencia!
+            }
+        }
+
+        if (accesoConcedido) {
+            res.json({ success: true });
+        } else {
+            res.json({ success: false, message: 'Contraseña incorrecta' });
+        }
+
+    } catch (error) {
+        console.error('Error verificando admin:', error);
+        res.status(500).json({ success: false, message: 'Error del servidor' });
     }
 });
 

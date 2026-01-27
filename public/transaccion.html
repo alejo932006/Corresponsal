@@ -154,19 +154,37 @@
                         <div class="input-wrapper-money">
                             <span class="currency-symbol" style="font-size:1.5rem;">$</span>
                             <input type="text" id="inputMontoVisual" class="input-big-money" placeholder="0" autocomplete="off" style="font-size:1.8rem;">
+                            <div class="quick-amounts">
+                                <button type="button" onclick="sumarMonto(50000)">+50k</button>
+                                <button type="button" onclick="sumarMonto(100000)">+100k</button>
+                                <button type="button" onclick="sumarMonto(200000)">+200k</button>
+                                <button type="button" onclick="sumarMonto(500000)">+500k</button>
+                                <button type="button" onclick="sumarMonto(1000000)">+1m</button>
+                                <button type="button" onclick="limpiarMonto()" class="btn-clear-monto">Borrar</button>
+                            </div>
                         </div>
                         <input type="hidden" id="inputMonto"> 
                     </div>
                 
-                    <div class="form-row">
-                        <div class="col-desc">
-                            <input type="text" id="inputDesc" class="input-std" placeholder="Referencia / Descripción (Opcional)" style="padding: 10px;">
+                    <div class="form-row" style="margin-bottom: 20px;">
+                        <div class="col-desc" style="width: 100%;">
+                            <div class="input-group-desc">
+                                <span class="icon-desc">✏️</span>
+                                <div style="flex:1; min-width: 0;"> 
+                                     <label for="inputDesc" style="font-size:0.7rem; color:#64748b; font-weight:800; display:block; margin-bottom:2px; text-transform:uppercase;">
+                                        REFERENCIA (OPCIONAL)
+                                     </label>
+                                     <input type="text" id="inputDesc" class="input-modern" placeholder="Ej: Cédula, N° Factura..." autocomplete="off">
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-btn">
-                            <button type="button" id="btnAgregar" class="btn-action-add" style="padding: 0 20px;">
-                                ⬇️ AGREGAR
-                            </button>
-                        </div>
+                    </div>
+                    
+                    <div class="action-container" style="text-align: center;">
+                        <button type="button" id="btnAgregar" class="btn-round-action">
+                            <span class="btn-icon">⬇️</span> 
+                            <span class="btn-text">AGREGAR</span>
+                        </button>
                     </div>
                 </form>
         
@@ -234,6 +252,25 @@
                         box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
                         text-transform: uppercase;">
                         ✅ COBRAR / FINALIZAR
+                    </button>
+                    <button id="btnAbrirCajon" style="
+                        width: auto;                  /* Ya no ocupa todo el ancho */
+                        margin: 20px auto 0 auto;     /* 20px de separación arriba, centrado horizontalmente */
+                        padding: 8px 15px;            /* Más delgado y corto */
+                        background-color: transparent;/* Fondo transparente para que no compita */
+                        color: #7f8c8d;               /* Color gris discreto */
+                        border: 1px dashed #bdc3c7;   /* Borde punteado suave */
+                        border-radius: 6px;
+                        font-size: 0.85rem;           /* Letra más pequeña */
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 5px;
+                        transition: all 0.2s;
+                    " onmouseover="this.style.borderColor='#7f8c8d'; this.style.color='#2c3e50'" 
+                    onmouseout="this.style.borderColor='#bdc3c7'; this.style.color='#7f8c8d'">
+                        🔑 <span style="font-weight: normal;">Cajón Admin</span>
                     </button>
                 </div>
     

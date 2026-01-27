@@ -1,0 +1,158 @@
+:root {
+    --bg-body: #f0f2f5;
+    --text-main: #2d3436;
+    --text-light: #636e72;
+    
+    /* Paleta Vibrante */
+    --col-money: #00b894;  /* Tesorería */
+    --col-ops: #0984e3;    /* Operaciones */
+    --col-admin: #6c5ce7;  /* Gerencia */
+    --col-warn: #e17055;   /* Alertas */
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    /* FONDO DECORATIVO SUTIL (Patrón de puntos) */
+    background-color: var(--bg-body);
+    background-image: radial-gradient(#dfe6e9 1px, transparent 1px);
+    background-size: 20px 20px;
+    margin: 0;
+    color: var(--text-main);
+}
+
+/* NAVBAR (Efecto Cristal) */
+.navbar {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 15px 40px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    position: sticky; top: 0; z-index: 100;
+}
+
+.brand { font-size: 1.4rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 12px; }
+.logo-circle {
+    background: linear-gradient(135deg, #2d3436, #000);
+    color: white; width: 40px; height: 40px; border-radius: 12px;
+    display: flex; justify-content: center; align-items: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.user-info { font-weight: 600; background: white; padding: 5px 15px; border-radius: 30px; border: 1px solid #eee; display: flex; align-items: center; gap: 10px; }
+.btn-logout { background: #ffeaa7; color: #d63031; width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer; transition: 0.2s; }
+.btn-logout:hover { background: #d63031; color: white; }
+
+.container { max-width: 1200px; margin: 30px auto; padding: 0 20px 60px 20px; }
+
+/* BANNER DE BIENVENIDA (NUEVO) */
+.welcome-banner {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    border-radius: 20px;
+    padding: 40px;
+    color: white;
+    margin-bottom: 50px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 15px 30px -10px rgba(108, 92, 231, 0.4);
+    position: relative; overflow: hidden;
+}
+
+.banner-content h1 { margin: 0 0 10px 0; font-size: 2rem; }
+.banner-content p { margin: 0; opacity: 0.9; font-size: 1.1rem; }
+
+.banner-decoration {
+    font-size: 8rem; opacity: 0.2; transform: rotate(15deg);
+    position: absolute; right: -20px; bottom: -30px;
+}
+
+/* SECCIONES */
+.section-header {
+    font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-light); margin: 40px 0 20px 0; display: flex; align-items: center; gap: 15px;
+}
+.section-header::after { content: ''; flex: 1; height: 2px; background: #e1e1e1; border-radius: 2px; }
+
+/* GRID */
+.menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+
+/* TARJETAS CON EFECTO "GLASS" Y MARCA DE AGUA */
+.card-menu {
+    background: white; border-radius: 20px; padding: 30px;
+    text-decoration: none; color: var(--text-main);
+    display: flex; flex-direction: column; align-items: flex-start;
+    transition: all 0.3s ease; position: relative; overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.04);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.03);
+}
+
+.card-menu:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); }
+
+.icon-box {
+    width: 60px; height: 60px; border-radius: 18px;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 1.8rem; margin-bottom: 20px; z-index: 2;
+    background: #f1f2f6; transition: 0.3s;
+}
+
+.card-menu h3 { margin: 0 0 8px 0; font-size: 1.25rem; font-weight: 700; z-index: 2; }
+.card-menu p { margin: 0; font-size: 0.9rem; color: var(--text-light); line-height: 1.5; z-index: 2; }
+
+/* --- MARCAS DE AGUA (ICONOS GIGANTES DE FONDO) --- */
+/* Usamos ::before para crear un icono gigante decorativo */
+.card-menu::before {
+    font-family: "Font Awesome 6 Free"; /* Asegura que lea los iconos */
+    font-weight: 900;
+    position: absolute;
+    right: -15px;
+    bottom: -20px;
+    font-size: 7rem;
+    opacity: 0.04; /* Muy sutil */
+    transform: rotate(-15deg);
+    transition: all 0.4s ease;
+    z-index: 1;
+}
+
+.card-menu:hover::before { opacity: 0.1; transform: rotate(0deg) scale(1.1); }
+
+/* CÓDIGOS DE ICONOS PARA CADA TARJETA */
+.card-caja::before { content: '\f788'; }         /* Cash Register */
+.card-bancolombia::before { content: '\f66f'; }  /* Building Columns */
+.card-davivienda::before { content: '\e065'; }   /* House User */
+.card-corresponsal::before { content: '\f54f'; } /* Shop */
+.card-resultados::before { content: '\f46c'; }   /* Clipboard Check */
+.card-cobrar::before { content: '\f4c0'; }       /* Hand Holding Dollar */
+.card-compras::before { content: '\f0d1'; }      /* Truck */
+.card-utilidad::before { content: '\f201'; }     /* Chart Line */
+
+
+/* --- COLORES VIBRANTES --- */
+
+/* Grupo 1: Tesorería (Degradados Verdes/Azulados) */
+.card-caja .icon-box, .card-bancolombia .icon-box, .card-davivienda .icon-box, .card-corresponsal .icon-box, .card-resultados .icon-box {
+    background: linear-gradient(135deg, #55efc4, #00b894); color: white;
+    box-shadow: 0 8px 15px -4px rgba(0, 184, 148, 0.4);
+}
+/* Al hacer hover, el borde inferior se ilumina */
+.card-caja:hover, .card-bancolombia:hover, .card-davivienda:hover, .card-corresponsal:hover, .card-resultados:hover {
+    border-bottom: 4px solid #00b894;
+}
+
+/* Grupo 2: Operaciones (Degradados Azules) */
+.card-cobrar .icon-box, .card-compras .icon-box {
+    background: linear-gradient(135deg, #74b9ff, #0984e3); color: white;
+    box-shadow: 0 8px 15px -4px rgba(9, 132, 227, 0.4);
+}
+.card-cobrar:hover, .card-compras:hover { border-bottom: 4px solid #0984e3; }
+
+/* Grupo 3: Gerencia (Degradados Púrpura) */
+.card-utilidad .icon-box {
+    background: linear-gradient(135deg, #a29bfe, #6c5ce7); color: white;
+    box-shadow: 0 8px 15px -4px rgba(108, 92, 231, 0.4);
+}
+.card-utilidad:hover { border-bottom: 4px solid #6c5ce7; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .navbar { padding: 15px 20px; }
+    .welcome-banner { padding: 25px; flex-direction: column; text-align: center; gap: 20px; }
+    .banner-decoration { display: none; }
+}

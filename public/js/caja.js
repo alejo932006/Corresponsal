@@ -150,7 +150,6 @@ async function reabrirCaja() {
 
 async function imprimirReporte() {
     try {
-        // 1. Obtener datos del servidor
         const res = await fetch(`/api/reporte-cierre?usuario=${usuario}`);
         const data = await res.json();
 
@@ -158,50 +157,94 @@ async function imprimirReporte() {
 
         const formato = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
 
-        // 2. Llenar Cabecera
-        document.getElementById('printFecha').textContent = data.fecha + ' ' + new Date().toLocaleTimeString();
-        document.getElementById('printCajero').textContent = usuario;
+        // --- 1. ENCABEZADO (Letra normal 12px) ---
+        const divHeader = document.querySelector('.ticket-header');
+        divHeader.innerHTML = `
+            <div style="text-align: center; margin-bottom: 5px;">
+                <h3 style="margin: 0; font-size: 1.2rem;">CORRESPONSAL BANCARIO</h3>
+                <p style="margin: 2px 0;">T-Shop Technology</p>
+                <p style="margin: 2px 0; font-size: 0.8rem;">NIT: 123456789-0</p>
+            </div>
+            <div style="border-top: 1px dashed black; margin: 5px 0; width: 100%;"></div>
+            <div style="text-align: center; margin-top: 5px;">
+                <h4 style="margin: 0; font-size: 1rem;">REPORTE DE CIERRE</h4>
+                <div style="font-size: 0.8rem; margin-top: 4px;">
+                    <p style="margin: 0;"><strong>Fecha:</strong> ${data.fecha}</p>
+                    <p style="margin: 0;"><strong>Hora:</strong> ${new Date().toLocaleTimeString()}</p>
+                    <p style="margin: 0;"><strong>Cajero:</strong> ${usuario}</p>
+                </div>
+            </div>
+        `;
 
-        // 3. Llenar Tabla RESUMEN (Totales)
+        // --- 2. RESUMEN (Letra normal) ---
         const tbodyResumen = document.getElementById('printTablaResumen');
         tbodyResumen.innerHTML = '';
-        
-        let granTotal = 0; // Solo referencial
-
         data.resumen.forEach(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${item.concepto} <small>(${item.cantidad})</small></td>
-                <td class="col-val">${formato.format(item.total_valor)}</td>
+                <td style="padding: 2px 0;">${item.concepto} <small>(${item.cantidad})</small></td>
+                <td style="text-align:right;">${formato.format(item.total_valor)}</td>
             `;
             tbodyResumen.appendChild(tr);
         });
 
-        // 4. Llenar Tabla DETALLE (Lista larga)
+        // --- 3. DETALLE (4 COLUMNAS - Letra COMPACTA 10px) ---
         const tbodyDetalle = document.getElementById('printTablaDetalle');
         tbodyDetalle.innerHTML = '';
-
-        data.detalle.forEach(mov => {
-            const tr = document.createElement('tr');
-            // Cortamos la descripción si es muy larga para que quepa en 80mm
-            const descCorta = mov.descripcion.length > 15 ? mov.descripcion.substring(0, 15) + '..' : mov.descripcion;
-            
-            tr.innerHTML = `
-                <td>${mov.hora}</td>
-                <td>
-                    <strong>${mov.tipo.substring(0,10)}</strong><br>
-                    <small>${descCorta}</small>
-                </td>
-                <td style="text-align:right">${formato.format(mov.monto)}</td>
+        
+        // Inyectamos la cabecera con letra pequeña
+        const thead = document.querySelector('.ticket-table-detail thead tr');
+        if(thead) {
+            // Estilo fontSize: 10px para que los títulos entren bien
+            thead.innerHTML = `
+                <th style="text-align:left; width:15%; font-size:10px;">Hora</th>
+                <th style="text-align:left; width:20%; font-size:10px;">Tipo</th>
+                <th style="text-align:left; width:40%; font-size:10px;">Ref/Desc</th>
+                <th style="text-align:right; width:25%; font-size:10px;">Valor</th>
             `;
-            tbodyDetalle.appendChild(tr);
+        }
+
+        // Agrupación de datos
+        const grupos = {};
+        data.detalle.forEach(mov => {
+            if (!grupos[mov.tipo]) grupos[mov.tipo] = [];
+            grupos[mov.tipo].push(mov);
         });
 
-        // Poner el total final que calculó el sistema en el cierre (lo tomamos del HTML actual o de los datos)
+        for (const [tipo, movimientos] of Object.entries(grupos)) {
+            // Título de Grupo (Gris)
+            const trHeader = document.createElement('tr');
+            trHeader.innerHTML = `
+                <td colspan="4" style="font-weight:bold; font-size:9px; background-color:#f0f0f0; padding: 4px 0 2px 0; border-bottom: 1px solid #000; text-transform:uppercase;">
+                    ${tipo}
+                </td>
+            `;
+            tbodyDetalle.appendChild(trHeader);
+
+            // Filas de Transacciones
+            movimientos.forEach(mov => {
+                const tr = document.createElement('tr');
+                
+                // Recortes de texto para seguridad visual
+                const tipoCorto = mov.tipo.length > 8 ? mov.tipo.substring(0,8) + '.' : mov.tipo;
+                // Descripción: Permitimos que haga 'wrap' (baje de línea) si es larga
+                
+                tr.innerHTML = `
+                    <td style="width:15%; vertical-align:top; font-size:9px; padding-top:2px;">${mov.hora}</td>
+                    <td style="width:20%; vertical-align:top; font-size:9px; padding-top:2px;">${tipoCorto}</td>
+                    <td style="width:40%; vertical-align:top; font-size:9px; overflow-wrap:anywhere; padding-right:2px; padding-top:2px; line-height:1.1;">
+                        ${mov.descripcion}
+                    </td>
+                    <td style="width:25%; text-align:right; vertical-align:top; font-size:9px; padding-top:2px;">${formato.format(mov.monto)}</td>
+                `;
+                tbodyDetalle.appendChild(tr);
+            });
+        }
+
+        // Total Final
         const saldoSistema = document.getElementById('resSistema').textContent;
         document.getElementById('printTotalFinal').textContent = saldoSistema;
 
-        // 5. INICIAR IMPRESIÓN
         window.print();
 
     } catch (error) {
@@ -210,14 +253,30 @@ async function imprimirReporte() {
     }
 }
 
+// --- FUNCIONES PARA EL MODAL DE NUEVO TURNO ---
+
 function prepararNuevoTurno() {
-    // Simplemente ocultamos el resumen y mostramos el formulario de apertura
+    // En lugar de window.confirm, mostramos nuestro modal bonito
+    const modal = document.getElementById('modalNuevoTurno');
+    modal.style.display = 'flex'; // 'flex' activa el centrado del CSS
+}
+
+function cerrarModal() {
+    document.getElementById('modalNuevoTurno').style.display = 'none';
+}
+
+function confirmarNuevoTurnoAccion() {
+    // 1. Ocultamos el modal
+    cerrarModal();
+
+    // 2. Ejecutamos la lógica de limpieza (lo que hacías antes)
     document.getElementById('viewResumen').style.display = 'none';
     document.getElementById('viewApertura').style.display = 'block';
     
-    // Limpiamos el input para que no quede el valor de la mañana
-    document.getElementById('inputBaseInicial').value = '';
-    document.getElementById('inputBaseInicial').focus();
+    // 3. Limpiamos y enfocamos
+    const inputBase = document.getElementById('inputBaseInicial');
+    inputBase.value = '';
+    inputBase.focus();
 }
 
 async function resetearBaseDatos() {

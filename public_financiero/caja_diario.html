@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caja Diario | Sistema Financiero</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/caja.css"> 
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">
+            <i class="fa-solid fa-book-open"></i> CAJA DIARIO
+        </div>
+    
+        <div class="nav-links">
+            <a href="menu.html" class="nav-item">
+                <i class="fa-solid fa-table-cells-large"></i> IR AL MENÚ
+            </a>
+        </div>
+    
+        <div class="user-info">
+            <span id="userDisplay">Usuario</span>
+            <button onclick="logout()" class="btn-logout" title="Cerrar Sesión">
+                <i class="fa-solid fa-power-off"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="saldo-hero">
+            <div class="saldo-info">
+                <span>SALDO ACTUAL DISPONIBLE</span>
+                <h1 id="granSaldo">$ 0.00</h1>
+            </div>
+            <button class="btn-ajuste" onclick="abrirModalAjuste()">
+                <i class="fa-solid fa-sliders"></i> AJUSTAR SALDO
+            </button>
+        </div>
+        
+        <div class="card-form">
+            <h3><i class="fa-solid fa-pen-to-square"></i> Nuevo Registro</h3>
+            <form id="formCaja">
+                <input type="hidden" id="editId">
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>Fecha</label>
+                        <input type="date" id="fecha" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Hora</label>
+                        <input type="time" id="hora" required>
+                    </div>
+                    <div class="input-group wide">
+                        <label>Descripción</label>
+                        <input type="text" id="descripcion" placeholder="Ej: Pago de nómina..." required autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <label class="green-text">Entrada ($)</label>
+                        <input type="number" id="entrada" placeholder="0" min="0" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label class="red-text">Salida ($)</label>
+                        <input type="number" id="salida" placeholder="0" min="0" step="0.01">
+                    </div>
+                    <div class="input-group btn-container">
+                        <button type="submit" class="btn-save" id="btnSubmit">GUARDAR</button>
+                        <button type="button" id="btnCancelEdit" class="btn-cancel-edit" style="display: none;" onclick="cancelarEdicion()">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="search-bar-container" style="margin: 30px 0 20px 0; display: flex;">
+            <div class="search-input-wrapper" style="flex: 1; position: relative;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #00b894;"></i>
+                <input type="text" id="busquedaInput" placeholder="Buscar movimiento (Ej: Pago luz)..." 
+                       onkeyup="resetearYBuscar()"
+                       style="width: 100%; padding: 12px 15px 12px 45px; border: none; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); outline: none; box-sizing: border-box;">
+            </div>
+        </div>
+        
+        <div class="card-table">
+            <h3>Historial de Movimientos</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>FECHA</th>
+                        <th>HORA</th>
+                        <th>CATEGORÍA</th>
+                        <th>DESCRIPCIÓN</th>
+                        <th class="text-right">ENTRADA</th>
+                        <th class="text-right">SALIDA</th>
+                        <th class="text-center">ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaHistorial">
+                    </tbody>
+            </table>
+        
+            <div style="text-align: center; margin-top: 25px; padding-bottom: 10px;">
+                <button id="btnCargarMas" onclick="cargarMas()" style="background: #f1f2f6; color: #57606f; border: 1px solid #dfe4ea; padding: 10px 25px; border-radius: 30px; font-weight: bold; cursor: pointer; transition: 0.3s;">
+                    <i class="fa-solid fa-circle-arrow-down"></i> CARGAR MÁS REGISTROS
+                </button>
+                <p id="msgFin" style="display:none; color: #b2bec3; font-style: italic;">No hay más registros para mostrar.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalAjuste" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ajustar Saldo Real</h2>
+                <button onclick="cerrarModalAjuste()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Ingresa la cantidad exacta de dinero que hay físicamente en la caja. El sistema creará un movimiento automático de ajuste.</p>
+                <div class="input-group">
+                    <label>Nuevo Saldo Real ($)</label>
+                    <input type="number" id="nuevoSaldoReal" placeholder="Ej: 500000" step="0.01">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="cerrarModalAjuste()" class="btn-cancel">Cancelar</button>
+                <button onclick="confirmarAjuste()" class="btn-confirm">Confirmar Ajuste</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/caja.js"></script>
+</body>
+</html>

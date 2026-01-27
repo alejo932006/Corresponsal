@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú Principal | Sistema Financiero</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/menu.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">
+            <i class="fa-solid fa-layer-group"></i> SISTEMA FINANCIERO
+        </div>
+        <div class="user-info">
+            <span id="userDisplay">Usuario</span>
+            <button onclick="logout()" class="btn-logout" title="Cerrar Sesión"><i class="fa-solid fa-power-off"></i></button>
+        </div>
+    </nav>
+
+    <div class="container">
+    
+        <div class="welcome-banner">
+            <div class="banner-content">
+                <h1>Panel de Control Financiero</h1>
+                <p>Bienvenido al centro de operaciones. Todo tu negocio en un solo lugar.</p>
+            </div>
+            <div class="banner-decoration">
+                <i class="fa-solid fa-chart-pie"></i>
+            </div>
+        </div>
+    
+        <div class="section-header">
+            <i class="fa-solid fa-vault"></i> Control de Efectivo y Cierres
+        </div>
+        
+        <div class="menu-grid">
+            <a href="caja_diario.html" class="card-menu card-caja">
+                <div class="icon-box"><i class="fa-solid fa-cash-register"></i></div>
+                <h3>Caja Diario</h3>
+                <p>Registro de efectivo, bases y gastos menores.</p>
+            </a>
+    
+            <a href="bancolombia.html" class="card-menu card-bancolombia">
+                <div class="icon-box"><i class="fa-solid fa-building-columns"></i></div>
+                <h3>Bancolombia</h3>
+                <p>Movimientos, saldos y control bancario.</p>
+            </a>
+    
+            <a href="davivienda.html" class="card-menu card-davivienda">
+                <div class="icon-box"><i class="fa-solid fa-house-chimney-user"></i></div>
+                <h3>Davivienda</h3>
+                <p>Gestión de cuentas y transferencias.</p>
+            </a>
+    
+            <a href="corresponsal.html" class="card-menu card-corresponsal">
+                <div class="icon-box"><i class="fa-solid fa-shop"></i></div>
+                <h3>Corresponsal</h3>
+                <p>Recaudos, depósitos y cuadre de caja externa.</p>
+            </a>
+    
+            <a href="resultados.html" class="card-menu card-resultados">
+                <div class="icon-box"><i class="fa-solid fa-clipboard-check"></i></div>
+                <h3>Cierre y Arqueo</h3>
+                <p>Consolidado final: Sistema vs Dinero Físico.</p>
+            </a>
+        </div>
+    
+    
+        <div class="section-header" style="margin-top: 40px; color: #00695c; border-color: #00695c;">
+            <i class="fa-solid fa-users-gear"></i> Gestión Operativa
+        </div>
+    
+        <div class="menu-grid">
+            <a href="cuentas_cobrar.html" class="card-menu card-cobrar">
+                <div class="icon-box"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                <h3>Clientes (Cobrar)</h3>
+                <p>Créditos, abonos y cartera de clientes.</p>
+            </a>
+    
+            <a href="compras.html" class="card-menu card-compras">
+                <div class="icon-box"><i class="fa-solid fa-truck"></i></div>
+                <h3>Proveedores (Pagar)</h3>
+                <p>Facturas de compra y fechas de vencimiento.</p>
+            </a>
+        </div>
+    
+    
+        <div class="section-header" style="margin-top: 40px; color: #263238; border-color: #263238;">
+            <i class="fa-solid fa-chart-pie"></i> Gerencia y Resultados
+        </div>
+    
+        <div class="menu-grid">
+            <a href="utilidad.html" class="card-menu card-utilidad">
+                <div class="icon-box"><i class="fa-solid fa-chart-line"></i></div>
+                <h3>Utilidad Neta</h3>
+                <p>Estado de resultados: Ganancias vs Pérdidas.</p>
+            </a>
+        </div>
+    
+    </div>
+
+    <script>
+        // Lógica simple integrada
+        document.addEventListener('DOMContentLoaded', () => {
+            const userStr = sessionStorage.getItem('fin_user');
+            if (!userStr) {
+                window.location.href = 'login2.html';
+                return;
+            }
+            const user = JSON.parse(userStr);
+            document.getElementById('userDisplay').textContent = "Hola, " + user.nombre.split(' ')[0];
+        });
+
+        function logout() {
+            sessionStorage.removeItem('fin_user');
+            window.location.href = 'login2.html';
+        }
+    </script>
+</body>
+</html>

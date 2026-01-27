@@ -1,0 +1,94 @@
+body { font-family: 'Roboto', sans-serif; background-color: #f3e5f5; margin: 0; } /* Fondo lila suave */
+
+/* NAVBAR VIOLETA */
+.navbar { 
+    background: #7b1fa2; color: white; padding: 15px 30px; 
+    display: flex; justify-content: space-between; align-items: center; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.brand { font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+.logo-circle { background: white; color: #7b1fa2; width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+
+.nav-links { flex-grow: 1; display: flex; justify-content: center; }
+.nav-item { text-decoration: none; color: white; background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
+.nav-item:hover { background: rgba(255,255,255,0.4); }
+
+.user-info { display: flex; gap: 15px; font-weight: 500; align-items: center; }
+.btn-logout { background: none; border: none; color: white; font-size: 1.1rem; cursor: pointer; }
+
+.container { max-width: 1300px; margin: 30px auto; padding: 0 20px; }
+
+/* GRID DASHBOARD */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.panel {
+    background: white; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    display: flex; flex-direction: column;
+}
+
+.panel-header {
+    padding: 15px 20px; font-weight: bold; color: white; font-size: 1.1rem; display: flex; align-items: center; gap: 10px;
+}
+.system-panel .panel-header { background: #5e35b1; }
+.physical-panel .panel-header { background: #00897b; }
+.result-panel .panel-header { background: #455a64; }
+
+.panel-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+
+.row-data { margin-bottom: 12px; }
+.row-data label { display: block; font-size: 0.85rem; color: #666; margin-bottom: 4px; font-weight: 500; }
+.row-data input {
+    width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;
+    font-size: 1rem; text-align: right; box-sizing: border-box;
+}
+.phys-input { border-color: #b2dfdb; background: #f0fdf4; }
+.phys-input:focus { border-color: #00897b; outline: none; }
+
+.highlight-input input { border: 2px solid #7b1fa2; background: #f3e5f5; font-weight: bold; }
+
+.total-box {
+    margin-top: auto; padding-top: 15px; border-top: 2px solid #eee; text-align: right;
+}
+.total-box span { font-size: 0.8rem; color: #888; letter-spacing: 1px; }
+.total-box h2 { margin: 5px 0 0 0; font-size: 2rem; color: #5e35b1; }
+.physical-total h2 { color: #00897b; }
+
+/* PANEL RESULTADO */
+.center-content { align-items: center; text-align: center; }
+.diff-circle {
+    width: 80px; height: 80px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
+    font-size: 2.5rem; margin-bottom: 15px; color: white; transition: all 0.3s;
+}
+.neutro { background: #90a4ae; }
+.bien { background: #4caf50; } /* Cuadrado o Sobrante leve */
+.mal { background: #f44336; }   /* Faltante */
+
+#diff_value { font-size: 2.5rem; margin: 0 0 20px 0; color: #333; }
+
+.form-group-full { width: 100%; margin-bottom: 20px; text-align: left; }
+.form-group-full textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; resize: none; box-sizing: border-box;}
+
+.btn-save-close {
+    width: 100%; background: #7b1fa2; color: white; border: none; padding: 15px;
+    font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer;
+}
+.btn-save-close:hover { background: #6a1b9a; }
+
+/* TABLA HISTORIAL */
+.history-section { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+.history-section h3 { margin-top: 0; color: #7b1fa2; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+
+table { width: 100%; border-collapse: collapse; }
+th { background: #f3e5f5; color: #7b1fa2; padding: 12px; text-align: left; border-bottom: 2px solid #e1bee7; font-size: 0.8rem; }
+td { padding: 12px; border-bottom: 1px solid #eee; color: #333; }
+.text-right { text-align: right; }
+
+.result-tag { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+.tag-ok { background: #e8f5e9; color: #2e7d32; }
+.tag-error { background: #ffebee; color: #c62828; }

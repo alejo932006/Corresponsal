@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados y Cierre | Sistema Financiero</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/resultados.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">
+            <div class="logo-circle"><i class="fa-solid fa-chart-pie"></i></div>
+            RESULTADOS Y CIERRE
+        </div>
+        <div class="nav-links">
+            <a href="menu.html" class="nav-item"><i class="fa-solid fa-table-cells-large"></i> IR AL MENÚ</a>
+        </div>
+        <div class="user-info">
+            <span id="userDisplay">Usuario</span>
+            <button onclick="logout()" class="btn-logout"><i class="fa-solid fa-power-off"></i></button>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <div class="dashboard-grid">
+            
+            <div class="panel system-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-server"></i> DATOS DEL SISTEMA
+                </div>
+                <div class="panel-body">
+                    <div class="row-data">
+                        <label>Saldo Caja Diario</label>
+                        <input type="text" id="sys_caja" readonly value="$0">
+                    </div>
+                    <div class="row-data">
+                        <label>Saldo Cuentas por Pagar</label>
+                        <small>(Corresponsal + Custodias)</small>
+                        <input type="text" id="sys_pagar" readonly value="$0" class="negative-val">
+                    </div>
+                    <div class="row-data">
+                        <label>Saldo Cuentas por Cobrar</label>
+                        <input type="text" id="sys_cobrar" readonly value="$0">
+                    </div>
+                    
+                    <div class="divider"></div>
+
+                    <div class="row-data highlight-input">
+                        <label>Bases Caja (Manual)</label>
+                        <input type="number" id="manual_base" placeholder="0" onkeyup="calcular()">
+                    </div>
+
+                    <div class="total-box">
+                        <span>DEBERÍA HABER:</span>
+                        <h2 id="sys_total">$ 0</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel physical-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-money-bill-wave"></i> CONTEO FÍSICO
+                </div>
+                <div class="panel-body">
+                    <div class="row-data">
+                        <label><i class="fa-solid fa-money-bill"></i> Efectivo Total</label>
+                        <input type="number" class="phys-input" id="fis_efectivo" placeholder="0" onkeyup="calcular()">
+                    </div>
+                    <div class="row-data">
+                        <label><i class="fa-solid fa-coins"></i> Monedas Físicas</label>
+                        <input type="number" class="phys-input" id="fis_monedas" placeholder="0" onkeyup="calcular()">
+                    </div>
+                    <div class="row-data">
+                        <label><i class="fa-solid fa-building-columns"></i> Saldo Bancos</label>
+                        <input type="number" class="phys-input" id="fis_bancos" placeholder="0" onkeyup="calcular()">
+                    </div>
+                    <div class="row-data">
+                        <label><i class="fa-solid fa-qrcode"></i> Pagos QR / Nequi</label>
+                        <input type="number" class="phys-input" id="fis_qr" placeholder="0" onkeyup="calcular()">
+                    </div>
+                    <div class="row-data">
+                        <label><i class="fa-solid fa-credit-card"></i> Datáfono</label>
+                        <input type="number" class="phys-input" id="fis_datafono" placeholder="0" onkeyup="calcular()">
+                    </div>
+                    <div class="row-data">
+                        <label><i class="fa-solid fa-arrow-right-arrow-left"></i> Transferencias</label>
+                        <input type="number" class="phys-input" id="fis_transf" placeholder="0" onkeyup="calcular()">
+                    </div>
+
+                    <div class="total-box physical-total">
+                        <span>TOTAL FÍSICO:</span>
+                        <h2 id="fis_total">$ 0</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel result-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-clipboard-check"></i> RESULTADO
+                </div>
+                <div class="panel-body center-content">
+                    <div id="diff_circle" class="diff-circle neutro">
+                        <i class="fa-solid fa-minus" id="diff_icon"></i>
+                    </div>
+                    
+                    <h3 id="diff_text">Cuadrado</h3>
+                    <h1 id="diff_value">$ 0</h1>
+                    
+                    <div class="form-group-full">
+                        <label>Observaciones</label>
+                        <textarea id="observaciones" rows="3" placeholder="Ej: Faltante por error en devuelta..."></textarea>
+                    </div>
+
+                    <button class="btn-save-close" onclick="guardarCierre()">
+                        GUARDAR CIERRE
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="history-section">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Historial de Cierres</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>FECHA</th>
+                            <th>HORA</th>
+                            <th>BASES</th>
+                            <th>SISTEMA DICE</th>
+                            <th>CONTEO FÍSICO</th>
+                            <th>DIFERENCIA</th>
+                            <th>RESULTADO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaHistorial">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="js/resultados.js"></script>
+</body>
+</html>
