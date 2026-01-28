@@ -48,25 +48,20 @@ async function cargarMetricas() {
 
 function calcular() {
     // 1. Calcular TOTAL SISTEMA
-    // Fórmula: Caja + Bases + CuentasCobrar - CuentasPagar
     const bases = parseFloat(document.getElementById('manual_base').value) || 0;
-    
-    // NOTA: Esta fórmula depende de cómo quieras ver el resultado. 
-    // Usualmente: "Debo tener" = (Caja Inicial + Entradas - Salidas)
-    // Aquí simplificamos: Caja Actual + Bases + Lo que me deben - Lo que debo (Corresponsal es deuda)
-    // Ajusta si tu lógica es diferente.
-    
     const totalSistema = datosSistema.caja + bases + datosSistema.terceros_cobrar - (datosSistema.corresponsal + datosSistema.terceros_pagar);
     
     document.getElementById('sys_total').textContent = fmt(totalSistema);
 
     // 2. Calcular TOTAL FÍSICO
     const v = (id) => parseFloat(document.getElementById(id).value) || 0;
-    const totalFisico = v('fis_efectivo') + v('fis_monedas') + v('fis_bancos') + v('fis_qr') + v('fis_datafono') + v('fis_transf');
+    
+    // AQUÍ ESTABA EL ERROR: Se eliminó "+ v('fis_transf')"
+    const totalFisico = v('fis_efectivo') + v('fis_monedas') + v('fis_bancos') + v('fis_qr') + v('fis_datafono');
     
     document.getElementById('fis_total').textContent = fmt(totalFisico);
 
-    // 3. Diferencia
+    // 3. Diferencia (El resto queda igual...)
     const diferencia = totalFisico - totalSistema;
     const diffEl = document.getElementById('diff_value');
     const circle = document.getElementById('diff_circle');
@@ -75,19 +70,18 @@ function calcular() {
 
     diffEl.textContent = fmt(diferencia);
 
-    // Estilos visuales
-    if (Math.abs(diferencia) < 100) { // Tolerancia pequeña
+    if (Math.abs(diferencia) < 100) { 
         circle.className = 'diff-circle bien';
         icon.className = 'fa-solid fa-check';
         text.textContent = 'Cuadrado';
         diffEl.style.color = '#2e7d32';
     } else if (diferencia > 0) {
-        circle.className = 'diff-circle bien'; // Sobra dinero (Azul/Verde)
+        circle.className = 'diff-circle bien';
         icon.className = 'fa-solid fa-plus';
         text.textContent = 'Sobrante';
         diffEl.style.color = '#1565c0';
     } else {
-        circle.className = 'diff-circle mal'; // Falta dinero
+        circle.className = 'diff-circle mal';
         icon.className = 'fa-solid fa-exclamation';
         text.textContent = 'Faltante';
         diffEl.style.color = '#c62828';
@@ -98,7 +92,7 @@ async function guardarCierre() {
     if(!confirm('¿Estás seguro de guardar este cierre?')) return;
 
     const v = (id) => parseFloat(document.getElementById(id).value) || 0;
-    const sysTotal = parseFloat(document.getElementById('sys_total').textContent.replace(/[$.]/g,'')) || 0; // Limpieza básica
+    const sysTotal = parseFloat(document.getElementById('sys_total').textContent.replace(/[$.]/g,'')) || 0;
     const fisTotal = parseFloat(document.getElementById('fis_total').textContent.replace(/[$.]/g,'')) || 0;
     const diff = fisTotal - sysTotal;
 
@@ -121,8 +115,8 @@ async function guardarCierre() {
             monedas: v('fis_monedas'),
             bancos: v('fis_bancos'),
             qr: v('fis_qr'),
-            datafono: v('fis_datafono'),
-            transf: v('fis_transf')
+            datafono: v('fis_datafono') 
+            // AQUÍ TAMBIÉN: Se eliminó la línea "transf: v('fis_transf')"
         },
         observaciones: document.getElementById('observaciones').value
     };

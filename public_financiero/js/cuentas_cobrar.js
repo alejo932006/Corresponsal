@@ -117,10 +117,28 @@ async function cargarClientes() {
         const res = await fetch('/api/financiero/clientes-resumen');
         const data = await res.json();
         clientesCache = data.datos;
+        
+        // --- NUEVO CÁLCULO DE TOTALES ---
+        let totalCartera = 0;   // Nos deben (Saldos negativos)
+        let totalCustodia = 0;  // Les debemos (Saldos positivos)
+
+        clientesCache.forEach(c => {
+            const saldo = parseFloat(c.saldo);
+            if (saldo < 0) {
+                totalCartera += Math.abs(saldo); // Sumamos lo que nos deben
+            } else {
+                totalCustodia += saldo; // Sumamos lo que tenemos guardado
+            }
+        });
+
+        // Actualizamos las tarjetas nuevas
+        document.getElementById('totalPorCobrar').textContent = fmt(totalCartera);
+        document.getElementById('totalEnCustodia').textContent = fmt(totalCustodia);
+        // -------------------------------
+
         renderClientes(clientesCache);
     } catch(e) { console.error(e); }
 }
-
 /* Reemplaza ESTA FUNCIÓN en public_financiero/js/cuentas_cobrar.js */
 
 function renderClientes(lista) {

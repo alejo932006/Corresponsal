@@ -578,7 +578,7 @@ function mostrarSubmenuProveedoresModal() {
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span style="font-size:1.2rem;">🧾</span> 
                     <div>
-                        <div>Pago Factura (Deuda)</div>
+                        <div>Pago Proovedor por Recaudo</div>
                         <small style="opacity:0.8;">Registrar como Recaudo</small>
                     </div>
                 </div>
@@ -588,7 +588,7 @@ function mostrarSubmenuProveedoresModal() {
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span style="font-size:1.2rem;">🏦</span> 
                     <div>
-                        <div>Consignación</div>
+                        <div>Pago Proovedor por Depósito</div>
                         <small style="opacity:0.8;">Registrar como Depósito</small>
                     </div>
                 </div>

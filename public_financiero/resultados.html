@@ -25,6 +25,13 @@
     </nav>
 
     <div class="container">
+
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+            <a href="https://svpersonas.apps.bancolombia.com/autenticacion" target="_blank" 
+               style="background-color: #FDDA24; color: #2d2d2d; padding: 10px 20px; border-radius: 50px; font-weight: bold; text-decoration: none; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid #e1c500; transition: transform 0.2s;">
+                <i class="fa-solid fa-building-columns"></i> VERIFICAR BANCOLOMBIA
+            </a>
+        </div>
         
         <div class="dashboard-grid">
             
@@ -75,20 +82,16 @@
                         <input type="number" class="phys-input" id="fis_monedas" placeholder="0" onkeyup="calcular()">
                     </div>
                     <div class="row-data">
-                        <label><i class="fa-solid fa-building-columns"></i> Saldo Bancos</label>
+                        <label><i class="fa-solid fa-building-columns"></i> Cheques</label>
                         <input type="number" class="phys-input" id="fis_bancos" placeholder="0" onkeyup="calcular()">
                     </div>
                     <div class="row-data">
-                        <label><i class="fa-solid fa-qrcode"></i> Pagos QR / Nequi</label>
+                        <label><i class="fa-solid fa-qrcode"></i> Bonos</label>
                         <input type="number" class="phys-input" id="fis_qr" placeholder="0" onkeyup="calcular()">
                     </div>
                     <div class="row-data">
-                        <label><i class="fa-solid fa-credit-card"></i> Datáfono</label>
+                        <label><i class="fa-solid fa-credit-card"></i> Domicilios</label>
                         <input type="number" class="phys-input" id="fis_datafono" placeholder="0" onkeyup="calcular()">
-                    </div>
-                    <div class="row-data">
-                        <label><i class="fa-solid fa-arrow-right-arrow-left"></i> Transferencias</label>
-                        <input type="number" class="phys-input" id="fis_transf" placeholder="0" onkeyup="calcular()">
                     </div>
 
                     <div class="total-box physical-total">

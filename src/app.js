@@ -184,17 +184,17 @@ app.get('/api/config-formulario', async (req, res) => {
 });
 
 // --- MIS MOVIMIENTOS ---
+//
+// --- MIS MOVIMIENTOS (AHORA: MOVIMIENTOS GLOBALES DEL TURNO) ---
 app.get('/api/mis-movimientos', async (req, res) => {
-    const { usuario } = req.query; 
+    // Nota: Ya no usamos "req.query.usuario" para filtrar, queremos ver todo.
     try {
-        // MODIFICADO: Quitamos filtro de fecha para ver el turno actual aunque sea de ayer
+        // 1. Buscamos el último turno GLOBAL del sistema (sin importar usuario)
         const queryTurno = `
-            SELECT hora_apertura, estado FROM aperturas_caja ac
-            JOIN usuarios u ON ac.usuario_id = u.id
-            WHERE u.nombre = $1
-            ORDER BY ac.id DESC LIMIT 1
+            SELECT hora_apertura, estado FROM aperturas_caja
+            ORDER BY id DESC LIMIT 1
         `;
-        const resTurno = await pool.query(queryTurno, [usuario]);
+        const resTurno = await pool.query(queryTurno);
         
         if (resTurno.rows.length === 0) {
             return res.json({ success: true, movimientos: [] });
@@ -202,12 +202,15 @@ app.get('/api/mis-movimientos', async (req, res) => {
 
         const turno = resTurno.rows[0];
 
+        // Opcional: Si quieres ver el historial aunque la caja esté cerrada, quita este if.
+        // Por ahora, lo dejamos para que muestre movimientos solo del turno ABIERTO.
         if (turno.estado !== 'ABIERTA') {
             return res.json({ success: true, movimientos: [] });
         }
 
         const horaInicioTurno = turno.hora_apertura;
 
+        // 2. Traemos las transacciones de TODOS los usuarios desde esa hora
         const query = `
         SELECT 
             t.id,
@@ -215,17 +218,17 @@ app.get('/api/mis-movimientos', async (req, res) => {
             tp.nombre as tipo,
             t.monto,
             t.descripcion,
-            tp.afecta_caja,      -- CORREGIDO: Para saber si suma o resta
-            u.nombre as usuario  -- CORREGIDO: Para ver el nombre y no "undefined"
+            tp.afecta_caja,
+            u.nombre as usuario  -- Importante: Aquí verás quién hizo la operación
         FROM transacciones t
         JOIN tipos_transaccion tp ON t.tipo_id = tp.id
         JOIN usuarios u ON t.usuario_id = u.id
-        WHERE u.nombre = $1 
-          AND t.fecha_hora >= $2
+        WHERE t.fecha_hora >= $1  -- FILTRO ÚNICO: Desde que se abrió la caja
         ORDER BY t.id DESC
-    `;
+        `;
         
-        const resultado = await pool.query(query, [usuario, horaInicioTurno]);
+        // Ejecutamos la consulta pasando solo la hora de inicio
+        const resultado = await pool.query(query, [horaInicioTurno]);
         res.json({ success: true, movimientos: resultado.rows });
 
     } catch (error) {
@@ -236,6 +239,7 @@ app.get('/api/mis-movimientos', async (req, res) => {
 
 // En src/app.js -> Busque app.post('/api/apertura-caja', ...)
 
+//
 app.post('/api/apertura-caja', async (req, res) => {
     const { usuario_nombre, monto } = req.body;
     try {
@@ -244,21 +248,20 @@ app.post('/api/apertura-caja', async (req, res) => {
         
         const userId = userRes.rows[0].id;
 
-        // 1. Buscamos SI EXISTE ALGUNA caja abierta (de cualquier fecha)
+        // 1. Buscamos SI EXISTE ALGUNA caja abierta en TODO EL SISTEMA (Global)
+        // Quitamos el filtro "usuario_id = $1"
         const checkAbierta = await pool.query(`
-            SELECT id, fecha::text as fecha_str FROM aperturas_caja 
-            WHERE usuario_id = $1 AND estado = 'ABIERTA'
-        `, [userId]);
+            SELECT ac.id, ac.fecha::text as fecha_str, u.nombre as quien_abrio 
+            FROM aperturas_caja ac
+            JOIN usuarios u ON ac.usuario_id = u.id
+            WHERE ac.estado = 'ABIERTA'
+        `);
 
         if (checkAbierta.rows.length > 0) {
             const cajaAbierta = checkAbierta.rows[0];
-            
-            // --- CAMBIO: Bloqueo estricto ---
-            // Ya no cerramos automáticamente. Si hay una abierta (sea de hoy o de hace un año),
-            // obligamos al usuario a ir y cerrarla manualmente.
             return res.status(400).json({ 
                 success: false, 
-                message: `⛔ Tienes una caja PENDIENTE del día ${cajaAbierta.fecha_str}. Debes cerrarla manualmente antes de abrir una nueva.` 
+                message: `⛔ Ya hay una caja ABIERTA por ${cajaAbierta.quien_abrio} (Fecha: ${cajaAbierta.fecha_str}). No puedes abrir otra.` 
             });
         }
 
@@ -278,17 +281,17 @@ app.post('/api/apertura-caja', async (req, res) => {
 });
 
 // --- RUTA: OBTENER BASE ACTUAL EN TIEMPO REAL ---
+//
 app.get('/api/base-caja', async (req, res) => {
-    const { usuario } = req.query;
+    // La variable usuario ya no la usamos para filtrar la caja
     try {
-        // MODIFICADO: Quitamos AND ac.fecha = CURRENT_DATE
+        // Obtenemos la última caja del sistema
         const queryInicial = `
-            SELECT monto_inicial, estado, hora_apertura FROM aperturas_caja ac
-            JOIN usuarios u ON ac.usuario_id = u.id
-            WHERE u.nombre = $1
-            ORDER BY ac.id DESC LIMIT 1
+            SELECT monto_inicial, estado, hora_apertura 
+            FROM aperturas_caja
+            ORDER BY id DESC LIMIT 1
         `;
-        const resInicial = await pool.query(queryInicial, [usuario]);
+        const resInicial = await pool.query(queryInicial);
         
         if (resInicial.rows.length === 0) {
              return res.json({ success: true, base: 0, baseInicial: 0, cajaAbierta: false });
@@ -296,24 +299,21 @@ app.get('/api/base-caja', async (req, res) => {
 
         const datosCaja = resInicial.rows[0];
         const baseInicial = parseFloat(datosCaja.monto_inicial);
-        // Si la última caja está CERRADA, entonces "CajaAbierta" es false
         const cajaAbierta = datosCaja.estado === 'ABIERTA';
 
         if (!cajaAbierta) {
             return res.json({ success: true, base: 0, baseInicial: 0, cajaAbierta: false });
         }
 
-        // Sumar movimientos desde esa apertura
+        // Sumar movimientos GLOBALES desde esa apertura (sin filtrar por usuario)
         const queryMovimientos = `
             SELECT SUM(t.monto * tp.afecta_caja) as total_movimientos
             FROM transacciones t
             JOIN tipos_transaccion tp ON t.tipo_id = tp.id
-            JOIN usuarios u ON t.usuario_id = u.id
-            WHERE u.nombre = $1 
-              AND t.fecha_hora >= $2
+            WHERE t.fecha_hora >= $1
         `;
         
-        const resMov = await pool.query(queryMovimientos, [usuario, datosCaja.hora_apertura]);
+        const resMov = await pool.query(queryMovimientos, [datosCaja.hora_apertura]);
         const movimientos = parseFloat(resMov.rows[0].total_movimientos) || 0;
         const totalEnCaja = baseInicial + movimientos;
 
@@ -362,18 +362,17 @@ app.post('/api/reabrir-caja', async (req, res) => {
 
 // En src/app.js -> Busque app.get('/api/estado-caja', ...)
 
+//
 app.get('/api/estado-caja', async (req, res) => {
-    const { usuario } = req.query;
+    // NOTA: Ya no filtramos por usuario, miramos la última caja global del sistema
     try {
-        // --- CAMBIO: Quitamos "AND ac.fecha = CURRENT_DATE" ---
-        // Ahora traemos SIEMPRE el último estado, sin importar la fecha.
         const query = `
-            SELECT ac.* FROM aperturas_caja ac
+            SELECT ac.*, u.nombre as nombre_usuario_apertura 
+            FROM aperturas_caja ac
             JOIN usuarios u ON ac.usuario_id = u.id
-            WHERE u.nombre = $1 
             ORDER BY ac.id DESC LIMIT 1 
         `;
-        const resultado = await pool.query(query, [usuario]);
+        const resultado = await pool.query(query);
 
         if (resultado.rows.length === 0) {
             return res.json({ estado: 'SIN_APERTURA' });
@@ -382,16 +381,14 @@ app.get('/api/estado-caja', async (req, res) => {
         const datos = resultado.rows[0];
         
         if (datos.estado === 'ABIERTA') {
-             // Calculamos saldo sumando movimientos desde ESA apertura
+             // Calculamos saldo sumando movimientos de TODOS los usuarios desde esa hora
              const queryMovs = `
                 SELECT SUM(t.monto * tp.afecta_caja) as total
                 FROM transacciones t
                 JOIN tipos_transaccion tp ON t.tipo_id = tp.id
-                JOIN usuarios u ON t.usuario_id = u.id
-                WHERE u.nombre = $1 
-                  AND t.fecha_hora >= $2
+                WHERE t.fecha_hora >= $1
             `;
-            const resMovs = await pool.query(queryMovs, [usuario, datos.hora_apertura]);
+            const resMovs = await pool.query(queryMovs, [datos.hora_apertura]);
             const movimientos = parseFloat(resMovs.rows[0].total) || 0;
             datos.saldo_actual_calculado = parseFloat(datos.monto_inicial) + movimientos;
         }
@@ -410,20 +407,18 @@ app.post('/api/cerrar-caja', async (req, res) => {
     const { usuario_nombre, monto_fisico } = req.body;
     
     try {
-        // 1. Buscamos la caja ABIERTA de este usuario (la última)
-        // --- CAMBIO: Quitamos "AND ac.fecha = CURRENT_DATE" ---
+        // 1. Buscamos la caja ABIERTA del SISTEMA
         const querySaldo = `
             SELECT 
-                ac.id,   -- Necesitamos el ID exacto para cerrar
+                ac.id,
                 ac.monto_inicial,
                 ac.hora_apertura
             FROM aperturas_caja ac
-            JOIN usuarios u ON ac.usuario_id = u.id
-            WHERE u.nombre = $1 AND ac.estado = 'ABIERTA'
+            WHERE ac.estado = 'ABIERTA'
             ORDER BY ac.id DESC LIMIT 1
         `;
         
-        const resSaldo = await pool.query(querySaldo, [usuario_nombre]);
+        const resSaldo = await pool.query(querySaldo);
         
         if (resSaldo.rows.length === 0) {
             return res.status(400).json({ success: false, message: 'No hay caja abierta para cerrar.' });
@@ -432,15 +427,14 @@ app.post('/api/cerrar-caja', async (req, res) => {
         const caja = resSaldo.rows[0];
         const inicial = parseFloat(caja.monto_inicial);
 
-        // Calcular movimientos desde la hora de apertura
+        // Calcular movimientos GLOBALES desde la hora de apertura
         const queryMovs = `
              SELECT COALESCE(SUM(t.monto * tp.afecta_caja), 0) as total
              FROM transacciones t
              JOIN tipos_transaccion tp ON t.tipo_id = tp.id
-             JOIN usuarios u ON t.usuario_id = u.id
-             WHERE u.nombre = $1 AND t.fecha_hora >= $2
+             WHERE t.fecha_hora >= $1
         `;
-        const resMovs = await pool.query(queryMovs, [usuario_nombre, caja.hora_apertura]);
+        const resMovs = await pool.query(queryMovs, [caja.hora_apertura]);
         
         const movs = parseFloat(resMovs.rows[0].total);
         const saldoSistema = inicial + movs;
@@ -486,11 +480,12 @@ app.post('/api/transacciones', async (req, res) => {
         // MODIFICADO: Chequear caja abierta solo por estado, no por fecha
         const cajaCheck = await pool.query(`
             SELECT id FROM aperturas_caja 
-            WHERE usuario_id = $1 AND estado = 'ABIERTA'
-        `, [usuarioId]);
+            WHERE estado = 'ABIERTA' 
+            LIMIT 1
+        `);
 
         if (cajaCheck.rows.length === 0) {
-            return res.json({ success: false, message: 'CAJA CERRADA: Abre caja primero.' });
+            return res.json({ success: false, message: 'CAJA CERRADA: Nadie ha abierto caja aún.' });
         }
 
         const query = `
@@ -819,7 +814,7 @@ app.post('/api/admin/abrir-cajon', (req, res) => {
         fs.writeFileSync(tempFile, comandoApertura);
 
         // DATOS DE CONEXIÓN (Modifica si cambiaste usuario/clave)
-        const IP = "192.168.0.76"; 
+        const IP = "192.168.0.235"; 
         const IMPRESORA = "IMPREPOS";
         const USUARIO = "cajero";
         const CLAVE = "1234";

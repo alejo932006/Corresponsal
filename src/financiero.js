@@ -1102,19 +1102,40 @@ app.get('/api/financiero/compras', async (req, res) => {
     }
 });
 
-// 2. GUARDAR COMPRA
+// 2. GUARDAR COMPRA Y REGISTRAR AUTOMÁTICAMENTE EN UTILIDAD
 app.post('/api/financiero/compras', async (req, res) => {
     const { usuario_id, nombre_proveedor, nit, numero_factura, valor, fecha_ingreso, plazo_dias, fecha_vencimiento } = req.body;
+    
     try {
-        const query = `
+        // --- PASO 1: Guardar en la tabla de Compras (Para cuentas por pagar) ---
+        const queryCompra = `
             INSERT INTO financiero_compras 
             (usuario_id, nombre_proveedor, nit, numero_factura, valor, fecha_ingreso, plazo_dias, fecha_vencimiento)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `;
-        await pool.query(query, [
+        await pool.query(queryCompra, [
             usuario_id, nombre_proveedor, nit, numero_factura, valor, fecha_ingreso, plazo_dias, fecha_vencimiento
         ]);
-        res.json({ success: true, message: 'Compra registrada correctamente' });
+
+        // --- PASO 2: Guardar automáticamente en PnL (Para restar en Utilidad) ---
+        // Creamos una descripción automática, ej: "Compra: Colanta (Fact. 123)"
+        const descripcionPnL = `Compra: ${nombre_proveedor} (Fact. ${numero_factura})`;
+        
+        // Usamos la categoría "Mercancía General" por defecto, o puedes poner "Compras Proveedor"
+        const queryPnL = `
+            INSERT INTO financiero_movimientos_pnl (usuario_id, fecha, tipo, categoria, descripcion, valor)
+            VALUES ($1, $2, 'COSTO', 'Mercancía General', $3, $4)
+        `;
+        
+        await pool.query(queryPnL, [
+            usuario_id, 
+            fecha_ingreso, // Usamos la misma fecha de ingreso de la factura
+            descripcionPnL, 
+            valor
+        ]);
+
+        res.json({ success: true, message: 'Compra registrada y cargada al costo correctamente' });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Error al guardar compra' });
@@ -1285,18 +1306,13 @@ app.get('/api/financiero/pnl/filtrar', async (req, res) => {
     }
 });
 
-// --- RUTA: CALCULAR TOTALES POR TURNO (CORREGIDA) ---
+// --- RUTA: CALCULAR TOTALES POR TURNO (CORREGIDA RECAUDOS) ---
 app.get('/api/financiero/corresponsal/calculo-dia', async (req, res) => {
     try {
-        // 1. OBTENER LA HORA DE LA ÚLTIMA APERTURA DE CAJA
-        const queryCaja = `
-            SELECT hora_apertura 
-            FROM aperturas_caja 
-            ORDER BY id DESC LIMIT 1
-        `;
+        // 1. OBTENER HORA DE APERTURA
+        const queryCaja = `SELECT hora_apertura FROM aperturas_caja ORDER BY id DESC LIMIT 1`;
         const resCaja = await pool.query(queryCaja);
         
-        // Si no hay caja abierta, usamos el inicio del día por defecto
         let fechaInicio = new Date();
         if (resCaja.rows.length > 0) {
             fechaInicio = resCaja.rows[0].hora_apertura;
@@ -1304,7 +1320,7 @@ app.get('/api/financiero/corresponsal/calculo-dia', async (req, res) => {
             fechaInicio.setHours(0,0,0,0);
         }
 
-        // 2. CALCULAR TOTALES FILTRANDO POR ESA HORA EXACTA
+        // 2. CALCULAR TOTALES
         const query = `
             SELECT 
                 -- 1. DEPÓSITOS 
@@ -1314,22 +1330,32 @@ app.get('/api/financiero/corresponsal/calculo-dia', async (req, res) => {
                       OR tp.nombre ILIKE '%Pago Proveedor (Consignación)%' 
                     THEN t.monto ELSE 0 END), 0) as deposito,
 
-                -- 2. RECAUDOS (Incluye Nequi, Servicios y Pago Prov. Recaudo)
+                -- 2. RECAUDOS (CORREGIDO: Excluye lo que ya tiene casilla propia)
                 COALESCE(SUM(CASE 
-                    WHEN tp.nombre ILIKE '%Servicios Públicos%' 
-                      OR (tp.nombre ILIKE '%Pago Proveedor%' AND tp.nombre NOT ILIKE '%(Consignación)%') 
-                      OR tp.nombre ILIKE '%Recarga Nequi%'  
-                      OR tp.categoria = 'RECAUDO' -- Atrapa Fondeo si le cambiaste la categoría
+                    WHEN (
+                           tp.nombre ILIKE '%Servicios Públicos%' 
+                        OR (tp.nombre ILIKE '%Pago Proveedor%' AND tp.nombre NOT ILIKE '%(Consignación)%') 
+                        OR tp.nombre ILIKE '%Recarga Nequi%'  
+                        OR tp.categoria = 'RECAUDO' -- Atrapa Fondeo y otros...
+                    )
+                    -- PERO EXCLUIMOS LO QUE YA TIENE SU PROPIA CASILLA:
+                    AND tp.nombre NOT ILIKE '%Tarjeta de Crédito%'  -- No sumar TC aquí
+                    AND tp.nombre NOT ILIKE '%Cartera%'             -- No sumar Cartera aquí
+                    AND tp.nombre NOT ILIKE '%Crédito%'             -- No sumar Créditos aquí
+                    AND tp.nombre NOT ILIKE '%Depósito%'            -- No sumar Depósitos aquí
+                    AND tp.nombre NOT ILIKE '%Consignación%'        -- No sumar Consignaciones aquí
+                    
                     THEN t.monto ELSE 0 END), 0) as recaudo,
 
-                -- 3. PAGO TC 
+                -- 3. PAGO TC (Tarjeta de Crédito)
                 COALESCE(SUM(CASE 
                     WHEN tp.nombre ILIKE '%Tarjeta de Crédito%' 
                     THEN t.monto ELSE 0 END), 0) as pago_tc,
 
-                -- 4. CARTERA 
+                -- 4. CARTERA (Créditos, excluyendo tarjeta)
                 COALESCE(SUM(CASE 
-                    WHEN tp.nombre ILIKE '%Cartera%' OR tp.nombre ILIKE '%Crédito%' 
+                    WHEN tp.nombre ILIKE '%Cartera%' 
+                      OR (tp.nombre ILIKE '%Crédito%' AND tp.nombre NOT ILIKE '%Tarjeta%') 
                     THEN t.monto ELSE 0 END), 0) as pago_cartera,
 
                 -- 5. RETIROS (Solo Clientes)
@@ -1344,7 +1370,7 @@ app.get('/api/financiero/corresponsal/calculo-dia', async (req, res) => {
 
             FROM transacciones t
             JOIN tipos_transaccion tp ON t.tipo_id = tp.id
-            WHERE t.fecha_hora >= $1  -- <--- ESTO ES LA MAGIA (Filtra por turno, no por día)
+            WHERE t.fecha_hora >= $1
         `;
 
         const result = await pool.query(query, [fechaInicio]);
