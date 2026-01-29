@@ -1,3 +1,6 @@
+let offsetActual = 0;
+const LIMITE_CARGA = 50;
+
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Verificar Sesión
     const userStr = sessionStorage.getItem('fin_user');
@@ -13,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('fecha').valueAsDate = now;
     document.getElementById('hora').value = now.toTimeString().substring(0,5);
 
-    cargarTabla();
+    cargarTabla(true);
     cargarSaldoTotal();
 
     // 2. Modificar el EventListener del Submit
@@ -47,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if(res.ok) {
             cancelarEdicion(); // Resetea todo
-            cargarTabla();
+            cargarTabla(true);
             cargarSaldoTotal();
         } else {
             alert('Error al guardar');
@@ -60,7 +63,7 @@ function eliminarRegistro(id) {
     if(!confirm('¿Eliminar registro de Bancolombia?')) return;
     fetch(`/api/financiero/bancolombia/${id}`, { method: 'DELETE' })
         .then(res => res.json())
-        .then(d => { if(d.success) { cargarTabla(); cargarSaldoTotal(); } else alert('Error'); });
+        .then(d => { if(d.success) { cargarTabla(true); cargarSaldoTotal(); } else alert('Error'); });
 }
 
 function cargarEdicion(filaStr) {
@@ -99,30 +102,60 @@ function cancelarEdicion() {
 
 let editMode = false;
 
-async function cargarTabla() {
-    const res = await fetch('/api/financiero/bancolombia');
-    const data = await res.json();
+// --- FUNCIÓN CARGAR TABLA MODIFICADA ---
+async function cargarTabla(resetear = false) {
+    const btnCargar = document.getElementById('btnCargarMas');
     const tbody = document.getElementById('tablaCuerpo');
-    tbody.innerHTML = '';
 
-    data.datos.forEach(fila => {
-        const tr = document.createElement('tr');
-        const filaJson = JSON.stringify(fila).replace(/"/g, '&quot;');
-        tr.innerHTML = `
-            <td>${fila.fecha}</td>
-            <td>${fila.hora}</td>
-            <td>${fila.usuario_nombre || 'N/A'}</td>
-            <td>${fila.descripcion}</td>
-            <td class="text-right green-text">${formatoMoneda(fila.entrada)}</td>
-            <td class="text-right red-text">${formatoMoneda(fila.salida)}</td>
-            <td class="text-right val-saldo">${formatoMoneda(fila.saldo)}</td>
-            <td class="text-center">
-                <button class="btn-action btn-edit" onclick="cargarEdicion('${filaJson}')"><i class="fa-solid fa-pen"></i></button>
-                <button class="btn-action btn-delete" onclick="eliminarRegistro(${fila.id})"><i class="fa-solid fa-trash"></i></button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
+    if (resetear) {
+        offsetActual = 0;
+        tbody.innerHTML = ''; // Limpiamos tabla solo si es reset
+    }
+
+    try {
+        // Pedimos al backend con limit y offset
+        const res = await fetch(`/api/financiero/bancolombia?limit=${LIMITE_CARGA}&offset=${offsetActual}`);
+        const data = await res.json();
+
+        if (data.success) {
+            data.datos.forEach(fila => {
+                const tr = document.createElement('tr');
+                const filaJson = JSON.stringify(fila).replace(/"/g, '&quot;');
+                tr.innerHTML = `
+                    <td>${fila.fecha}</td>
+                    <td>${fila.hora}</td>
+                    <td>${fila.usuario_nombre || 'N/A'}</td>
+                    <td>${fila.descripcion}</td>
+                    <td class="text-right green-text">${formatoMoneda(fila.entrada)}</td>
+                    <td class="text-right red-text">${formatoMoneda(fila.salida)}</td>
+                    <td class="text-right val-saldo">${formatoMoneda(fila.saldo)}</td>
+                    <td class="text-center">
+                        <button class="btn-action btn-edit" onclick="cargarEdicion('${filaJson}')"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn-action btn-delete" onclick="eliminarRegistro(${fila.id})"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Aumentamos el offset para la próxima vez
+            offsetActual += data.datos.length;
+
+            // Lógica del botón "Cargar Más"
+            if (data.datos.length < LIMITE_CARGA) {
+                // Si trajo menos de 50, es que ya no hay más
+                btnCargar.style.display = 'none';
+            } else {
+                // Si trajo 50, probablemente haya más
+                btnCargar.style.display = 'inline-block';
+            }
+        }
+    } catch (error) {
+        console.error('Error cargando tabla:', error);
+    }
+}
+
+function cargarMasRegistros() {
+    cargarTabla(false); // false = NO borrar lo que ya hay, solo agregar
 }
 
 async function cargarSaldoTotal() {
@@ -178,7 +211,7 @@ async function confirmarAjuste() {
         if (data.success) {
             alert(data.message);
             cerrarModalAjuste();
-            cargarTabla();
+            cargarTabla(true);
             cargarSaldoTotal();
         } else {
             alert('Error: ' + data.message);

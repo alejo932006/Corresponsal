@@ -80,7 +80,7 @@
             </form>
         </div>
 
-        <div class="card-table">
+<div class="card-table">
             <table>
                 <thead>
                     <tr>
@@ -91,12 +91,18 @@
                         <th class="text-right">ENTRADA</th>
                         <th class="text-right">SALIDA</th>
                         <th class="text-right">SALDO</th>
-                    </tr>
+                        <th class="text-center">ACCIÓN</th> </tr>
                 </thead>
                 <tbody id="tablaCuerpo">
                     </tbody>
             </table>
-        </div>
+
+            <div style="text-align: center; padding: 20px;">
+                <button id="btnCargarMas" onclick="cargarMasRegistros()" class="btn-ajuste" style="background-color: #eee; color: #333; display: none;">
+                    <i class="fa-solid fa-arrow-down"></i> Cargar más
+                </button>
+            </div>
+            </div>
     </div>
 
     <div id="modalAjuste" class="modal-overlay" style="display: none;">

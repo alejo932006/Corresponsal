@@ -325,33 +325,41 @@ app.get('/api/base-caja', async (req, res) => {
     }
 });
 
-// --- REABRIR CAJA ---
+// --- REABRIR CAJA (CORREGIDO: GLOBAL) ---
 app.post('/api/reabrir-caja', async (req, res) => {
-    const { usuario_nombre } = req.body;
+    // Ya no necesitamos 'usuario_nombre' para filtrar, 
+    // queremos reabrir la última caja del sistema sea de quien sea.
     try {
-        // MODIFICADO: Buscar última caja (sin filtro de fecha)
+        // 1. Buscar la ÚLTIMA caja registrada en todo el sistema
         const lastBoxQuery = `
-            SELECT ac.id FROM aperturas_caja ac
-            JOIN usuarios u ON ac.usuario_id = u.id
-            WHERE u.nombre = $1
-            ORDER BY ac.id DESC LIMIT 1
+            SELECT id, estado FROM aperturas_caja
+            ORDER BY id DESC LIMIT 1
         `;
-        const lastBoxRes = await pool.query(lastBoxQuery, [usuario_nombre]);
+        const lastBoxRes = await pool.query(lastBoxQuery);
 
         if (lastBoxRes.rows.length === 0) {
-            return res.status(400).json({ success: false, message: 'No hay cajas para reabrir' });
+            return res.status(400).json({ success: false, message: 'No existe historial de cajas para reabrir.' });
         }
 
-        const boxId = lastBoxRes.rows[0].id;
+        const caja = lastBoxRes.rows[0];
 
-        const query = `
+        // Opcional: Validar si ya está abierta
+        if (caja.estado === 'ABIERTA') {
+            return res.json({ success: true, message: 'La caja ya está abierta.' });
+        }
+
+        // 2. Reabrir esa caja específica (Limpiamos los datos de cierre)
+        const queryUpdate = `
             UPDATE aperturas_caja 
-            SET estado = 'ABIERTA', fecha_cierre = NULL, monto_final_sistema = NULL, 
-                monto_final_real = NULL, diferencia = NULL
+            SET estado = 'ABIERTA', 
+                fecha_cierre = NULL, 
+                monto_final_sistema = NULL, 
+                monto_final_real = NULL, 
+                diferencia = NULL
             WHERE id = $1
         `;
         
-        await pool.query(query, [boxId]);
+        await pool.query(queryUpdate, [caja.id]);
         res.json({ success: true, message: 'Caja reabierta correctamente' });
 
     } catch (error) {
@@ -504,24 +512,28 @@ app.post('/api/transacciones', async (req, res) => {
 });
 
 // --- RUTA: OBTENER DATOS PARA EL REPORTE DE CIERRE (CON ORDEN EXACTO) ---
+// --- RUTA: OBTENER DATOS PARA EL REPORTE DE CIERRE (CORREGIDO: GLOBAL POR DÍA) ---
 app.get('/api/reporte-cierre', async (req, res) => {
-    const { usuario, fecha } = req.query;
+    const { fecha } = req.query; // Ya no usamos 'usuario' para filtrar
     try {
         const fechaFiltro = fecha || new Date().toISOString().split('T')[0];
 
-        // 1. Resumen Agrupado (Igual que siempre)
+        // 1. Resumen Agrupado (GLOBAL)
+        // Se quitó: AND u.nombre = $1
         const queryAgrupado = `
             SELECT tp.nombre as concepto, SUM(t.monto) as total_valor, COUNT(*) as cantidad
             FROM transacciones t
             JOIN tipos_transaccion tp ON t.tipo_id = tp.id
             JOIN usuarios u ON t.usuario_id = u.id
-            WHERE u.nombre = $1 AND DATE(t.fecha_hora) = $2
+            WHERE DATE(t.fecha_hora) = $1
             GROUP BY tp.nombre
             ORDER BY total_valor DESC
         `;
-        const resAgrupado = await pool.query(queryAgrupado, [usuario, fechaFiltro]);
+        // Pasamos solo [fechaFiltro]
+        const resAgrupado = await pool.query(queryAgrupado, [fechaFiltro]);
 
-        // 2. Detalle Ordenado según tu lista exacta
+        // 2. Detalle Ordenado (GLOBAL)
+        // Se quitó: AND u.nombre = $1
         const queryDetalle = `
             SELECT 
                 to_char(t.fecha_hora, 'HH12:MI AM') as hora,
@@ -533,33 +545,25 @@ app.get('/api/reporte-cierre', async (req, res) => {
             FROM transacciones t
             JOIN tipos_transaccion tp ON t.tipo_id = tp.id
             JOIN usuarios u ON t.usuario_id = u.id
-            WHERE u.nombre = $1 AND DATE(t.fecha_hora) = $2
+            WHERE DATE(t.fecha_hora) = $1
             ORDER BY 
                 CASE 
-                    -- GRUPO 1: RETIROS DE CLIENTE (Lo primero)
                     WHEN tp.nombre = 'Retiro Cliente' THEN 1
-
-                    -- GRUPO 2: CONSIGNACIONES Y RECAUDOS (Operativa diaria)
                     WHEN tp.nombre = 'Depósitos o Consignación' THEN 2
                     WHEN tp.nombre = 'Recarga Nequi' THEN 2
                     WHEN tp.nombre = 'Pago Servicios Públicos' THEN 2
                     WHEN tp.nombre = 'Pago de Cartera o Crédito' THEN 2
                     WHEN tp.nombre = 'Pago Tarjeta de Crédito' THEN 2
-
-                    -- GRUPO 3: PAGOS A PROVEEDORES (Salidas operativas)
                     WHEN tp.nombre = 'Pago Proveedor (Deuda)' THEN 3
-
-                    -- GRUPO 4: MOVIMIENTOS INTERNOS / ADMINISTRATIVOS (Lo último)
                     WHEN tp.nombre = 'Entrada Tesorería (Fondeo)' THEN 4
                     WHEN tp.nombre = 'Retiro Oficina (Cierre)' THEN 4
                     WHEN tp.nombre = 'Ajuste / Descuadre Caja' THEN 5
-
-                    -- CUALQUIER OTRA COSA NUEVA
                     ELSE 6
                 END ASC,
-                t.fecha_hora ASC -- Orden cronológico dentro de cada grupo
+                t.fecha_hora ASC
         `;
-        const resDetalle = await pool.query(queryDetalle, [usuario, fechaFiltro]);
+        // Pasamos solo [fechaFiltro]
+        const resDetalle = await pool.query(queryDetalle, [fechaFiltro]);
 
         res.json({
             success: true,
@@ -569,7 +573,7 @@ app.get('/api/reporte-cierre', async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Error en reporte cierre:", error);
         res.status(500).json({ success: false });
     }
 });
@@ -649,13 +653,23 @@ app.get('/api/reportes-rango', async (req, res) => {
         if (!inicio || !fin) return res.status(400).json({ success: false, message: 'Faltan fechas' });
 
         let filtroTipo = "";
-        const params = [usuario, inicio, fin];
-
+        // Nota: Asumimos que quieres el reporte GLOBAL (sin filtrar por usuario)
+        const params = [inicio, fin]; 
+        
+        // --- LÓGICA PARA INTERPRETAR LA OPCIÓN UNIFICADA ---
         if (tipo && tipo !== 'TODOS') {
-            filtroTipo = " AND t.tipo_id = $4";
-            params.push(tipo);
+            if (tipo === 'PROVEEDORES') {
+                // Si seleccionaron la opción amarilla, buscamos TODO lo que diga "Proveedor"
+                filtroTipo = " AND tp.nombre ILIKE '%Proveedor%'";
+            } else {
+                // Si es cualquier otra opción normal, buscamos por su ID
+                filtroTipo = " AND t.tipo_id = $3";
+                params.push(tipo);
+            }
         }
+        // ---------------------------------------------------
 
+        // (El resto de la consulta sigue igual...)
         const queryResumen = `
             SELECT 
                 COUNT(*) as cantidad_total,
@@ -665,12 +679,13 @@ app.get('/api/reportes-rango', async (req, res) => {
             FROM transacciones t
             JOIN tipos_transaccion tp ON t.tipo_id = tp.id
             JOIN usuarios u ON t.usuario_id = u.id
-            WHERE u.nombre = $1 
-              AND t.fecha_hora::date BETWEEN $2 AND $3
+            WHERE t.fecha_hora::date BETWEEN $1 AND $2
               ${filtroTipo}
         `;
+        // ... Ejecución de query y respuesta ...
         const resumen = await pool.query(queryResumen, params);
-
+        
+        // Consulta detalle (recuerda aplicar también el filtroTipo aquí)
         const queryDetalle = `
             SELECT 
                 t.id,
@@ -679,12 +694,11 @@ app.get('/api/reportes-rango', async (req, res) => {
                 t.descripcion,
                 t.monto,
                 tp.afecta_caja,
-                u.nombre as usuario  -- CORREGIDO: Agregado nombre de usuario
+                u.nombre as usuario
             FROM transacciones t
             JOIN tipos_transaccion tp ON t.tipo_id = tp.id
             JOIN usuarios u ON t.usuario_id = u.id
-            WHERE u.nombre = $1 
-            AND t.fecha_hora::date BETWEEN $2 AND $3
+            WHERE t.fecha_hora::date BETWEEN $1 AND $2
             ${filtroTipo}
             ORDER BY t.fecha_hora DESC
         `;
@@ -697,6 +711,7 @@ app.get('/api/reportes-rango', async (req, res) => {
         });
 
     } catch (error) {
+        console.error(error);
         res.status(500).json({ success: false, message: 'Error generando reporte' });
     }
 });

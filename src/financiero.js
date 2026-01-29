@@ -187,7 +187,12 @@ app.post('/api/financiero/ajustar-saldo', async (req, res) => {
 // ==========================================
 
 // 1. OBTENER REGISTROS BANCOLOMBIA
+// 1. OBTENER REGISTROS BANCOLOMBIA (CON PAGINACIÓN)
 app.get('/api/financiero/bancolombia', async (req, res) => {
+    // Recibimos los parámetros, si no llegan, usamos valores por defecto
+    const limit = parseInt(req.query.limit) || 50; 
+    const offset = parseInt(req.query.offset) || 0;
+
     try {
         const query = `
             SELECT 
@@ -202,9 +207,10 @@ app.get('/api/financiero/bancolombia', async (req, res) => {
             FROM financiero_bancolombia b
             LEFT JOIN financiero_usuarios u ON b.usuario_id = u.id
             ORDER BY b.fecha DESC, b.hora DESC, b.id DESC
-            LIMIT 100;
+            LIMIT $1 OFFSET $2; -- Usamos variables para paginar
         `;
-        const result = await pool.query(query);
+        // Pasamos limit y offset a la consulta
+        const result = await pool.query(query, [limit, offset]);
         res.json({ success: true, datos: result.rows });
     } catch (error) {
         console.error(error);

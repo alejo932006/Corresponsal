@@ -19,18 +19,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Función para llenar el select automáticamente
+// Función para llenar el select y personalizar la opción de proveedores
 async function cargarTiposEnFiltro() {
     try {
-        const res = await fetch('/api/config-formulario'); // Reusamos tu API existente
+        const res = await fetch('/api/config-formulario');
         const data = await res.json();
         
         if (data.success) {
             const select = document.getElementById('filtroTipo');
+            // Limpiamos la lista y ponemos la opción base
+            select.innerHTML = '<option value="TODOS">-- TODOS LOS MOVIMIENTOS --</option>';
+
+            // --- 1. CREAMOS LA OPCIÓN ESPECIAL UNIFICADA ---
+            const opcionProveedores = document.createElement('option');
+            opcionProveedores.value = 'PROVEEDORES'; // Este valor lo leerá el servidor
+            opcionProveedores.textContent = '★ PAGO A PROVEEDORES TOTAL'; // Nombre visible
+            
+            // --- AQUÍ ESTÁ EL TRUCO DEL COLOR ---
+            // Usamos un amarillo brillante para que destaque en la lista
+            opcionProveedores.style.backgroundColor = '#ffd700'; 
+            opcionProveedores.style.fontWeight = 'bold';
+            opcionProveedores.style.color = '#000'; // Letra negra para contraste
+            
+            // Agregamos la opción especial primero (o donde prefieras)
+            select.appendChild(opcionProveedores);
+
+            // --- 2. AGREGAMOS EL RESTO DE OPCIONES ---
             data.tipos.forEach(tipo => {
-                const option = document.createElement('option');
-                option.value = tipo.id;
-                option.textContent = tipo.nombre;
-                select.appendChild(option);
+                const nombreMayus = tipo.nombre.toUpperCase();
+
+                // OJO: Si el tipo es de proveedor, NO lo agregamos (porque ya está en la unificada)
+                if (!nombreMayus.includes('PROVEEDOR')) {
+                    const option = document.createElement('option');
+                    option.value = tipo.id;
+                    option.textContent = tipo.nombre;
+                    select.appendChild(option);
+                }
             });
         }
     } catch (error) {
