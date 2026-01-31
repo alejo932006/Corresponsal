@@ -139,68 +139,107 @@ async function cargarClientes() {
         renderClientes(clientesCache);
     } catch(e) { console.error(e); }
 }
-/* Reemplaza ESTA FUNCIÓN en public_financiero/js/cuentas_cobrar.js */
 
+/* Reemplaza la función renderClientes con esta lógica de colores INVERTIDA */
 function renderClientes(lista) {
-    const grid = document.getElementById('gridClientes');
-    grid.innerHTML = '';
+    const gridMeDeben = document.getElementById('gridMeDeben');
+    const gridLesDebo = document.getElementById('gridLesDebo');
+    
+    gridMeDeben.innerHTML = '';
+    gridLesDebo.innerHTML = '';
+
+    if(lista.length === 0) {
+        gridMeDeben.innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-style:italic;">No hay deudores</div>';
+        gridLesDebo.innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-style:italic;">No hay acreedores</div>';
+        return;
+    }
 
     lista.forEach(c => {
         const saldo = parseFloat(c.saldo);
-        let claseBorde = '';
-        let textoEstado = '';
-        let iconoEstado = '';
+        if (Math.abs(saldo) < 1) return; // Ignorar ceros
+
+        let claseColor = '';
+        let claseTexto = '';
+        let destino = null;
         let valorMostrar = saldo;
 
-        // LÓGICA INTELIGENTE:
+        // --- LÓGICA DE COLORES ACTUALIZADA ---
         if (saldo > 0) {
-            // El saldo es positivo: Tú tienes su dinero
-            claseBorde = 'saldo-positivo'; // Verde
-            textoEstado = 'TIENE A FAVOR (TÚ LO TIENES)';
-            iconoEstado = '<i class="fa-solid fa-piggy-bank"></i>';
+            // SALDO > 0: TÚ tienes el dinero -> "LES DEBO"
+            // Color: ROJO (Deuda para ti)
+            destino = gridLesDebo;
+            claseColor = 'rojo';       // Fila roja
+            claseTexto = 'txt-rojo';   // Texto rojo
             valorMostrar = saldo; 
-        } else if (saldo < 0) {
-            // El saldo es negativo: Salieron más recursos tuyos hacia él
-            claseBorde = 'saldo-negativo'; // Rojo
-            textoEstado = 'TE DEBE (CARTERA)';
-            iconoEstado = '<i class="fa-solid fa-hand-holding-dollar"></i>';
-            valorMostrar = Math.abs(saldo); // Lo mostramos positivo visualmente pero en rojo
         } else {
-            // Saldo cero
-            claseBorde = 'saldo-neutro'; // Gris
-            textoEstado = 'PAZ Y SALVO';
-            iconoEstado = '<i class="fa-solid fa-check"></i>';
-            valorMostrar = 0;
+            // SALDO < 0: ELLOS tienen tu dinero -> "ME DEBEN"
+            // Color: VERDE (Activo para ti)
+            destino = gridMeDeben;
+            claseColor = 'verde';      // Fila verde
+            claseTexto = 'txt-verde';  // Texto verde
+            valorMostrar = Math.abs(saldo); 
         }
 
-        const card = document.createElement('div');
-        card.className = `card-cliente ${claseBorde}`;
+        const row = document.createElement('div');
+        row.className = `cliente-fila ${claseColor}`;
         
-        card.onclick = (e) => {
-            if(e.target.closest('.btn-view-history')) return;
+        row.onclick = (e) => {
+            if(e.target.closest('button')) return;
             abrirModalCliente(c);
         };
 
-        card.innerHTML = `
-            <div class="card-header-actions">
-                <div class="cli-name" style="margin:0;">${c.cliente_nombre}</div>
-                <button class="btn-view-history" title="Ver Historial" 
+        row.innerHTML = `
+            <div class="fila-info">
+                <span class="fila-nombre" title="${c.cliente_nombre}">${c.cliente_nombre}</span>
+                <span class="fila-doc"><i class="fa-solid fa-id-card"></i> ${c.cliente_documento || '---'}</span>
+            </div>
+
+            <div class="fila-saldo ${claseTexto}">
+                ${fmt(valorMostrar)}
+            </div>
+
+            <div class="fila-actions">
+                <button class="btn-mini btn-hist" title="Ver Historial" 
                     onclick="verHistorial('${c.cliente_documento||''}', '${c.cliente_nombre}')">
                     <i class="fa-solid fa-list-ul"></i>
                 </button>
+                <button class="btn-mini btn-del" title="Eliminar Cliente" 
+                    onclick="eliminarClienteTotal('${c.cliente_documento}', '${c.cliente_nombre}')">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
             </div>
-            
-            <div class="cli-doc"><i class="fa-solid fa-id-card"></i> ${c.cliente_documento || 'Sin ID'}</div>
-            
-            <div class="lbl-saldo" style="display: flex; justify-content: space-between;">
-                <span>${textoEstado}</span>
-                <span>${iconoEstado}</span>
-            </div>
-            
-            <div class="cli-saldo">${fmt(valorMostrar)}</div>
         `;
-        grid.appendChild(card);
+
+        if(destino) destino.appendChild(row);
     });
+}
+
+// --- NUEVA FUNCIÓN PARA ELIMINAR CLIENTE COMPLETO ---
+async function eliminarClienteTotal(doc, nombre) {
+    if(!doc) return alert('Error: Cliente sin documento');
+    
+    // Doble confirmación por seguridad
+    if(!confirm(`⚠️ PELIGRO ⚠️\n\n¿Estás seguro de eliminar a ${nombre}?\n\nSe borrarán TODOS sus movimientos y su saldo quedará eliminado.`)) return;
+    if(!confirm(`Confirma nuevamente: ¿Eliminar definitivamente a ${nombre}?`)) return;
+
+    try {
+        const res = await fetch(`/api/financiero/cuentas-cobrar/eliminar-cliente/${doc}`, {
+            method: 'DELETE'
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            alert('Cliente eliminado correctamente.');
+            cargarClientes();       // Recargar tarjetas
+            cargarTablaHistorial(); // Recargar tabla de abajo
+            cargarSaldoTotal();     // Recargar saldo global
+        } else {
+            alert('Error al eliminar: ' + data.message);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Error de conexión');
+    }
 }
 
 function filtrarClientes() {

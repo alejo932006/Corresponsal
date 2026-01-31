@@ -788,29 +788,48 @@ app.get('/api/financiero/cuentas-cobrar/historial-cliente', async (req, res) => 
 // MÓDULO RESULTADOS (CIERRE Y ARQUEO)
 // ==========================================
 
-// 1. OBTENER SALDOS EN TIEMPO REAL (Para llenar el formulario automático)
+/* src/financiero.js - Reemplaza la ruta de métricas actuales */
+
+// 1. OBTENER SALDOS EN TIEMPO REAL
 app.get('/api/financiero/resultados/metricas-actuales', async (req, res) => {
     try {
         // A. Saldo Caja Diario
         const resCaja = await pool.query('SELECT COALESCE(SUM(entrada - salida), 0) as total FROM financiero_caja_diario');
         
-        // B. Saldo Corresponsal (Lo asumiremos como Cuenta por Pagar al Banco)
+        // B. Saldo Corresponsal (Informativo)
         const resCorr = await pool.query(`
             SELECT COALESCE(SUM(
                 (deposito + recaudo + pago_tc + pago_cartera) - (retiro + compensacion)
             ), 0) as total FROM financiero_corresponsal
         `);
 
-        // C. Cuentas de Terceros (Separamos Cobrar de Pagar)
-        // Si saldo < 0 es Cobrar (Me deben). Si saldo > 0 es Pagar (Tengo su plata).
-        const resTerceros = await pool.query(`
-            SELECT 
-                COALESCE(SUM(CASE WHEN (entrada - salida) < 0 THEN (entrada - salida) ELSE 0 END), 0) as por_cobrar,
-                COALESCE(SUM(CASE WHEN (entrada - salida) > 0 THEN (entrada - salida) ELSE 0 END), 0) as por_pagar
-            FROM financiero_cuentas_cobrar
+        // C. CÁLCULO HÍBRIDO (LO QUE TÚ NECESITAS)
+        
+        // 1. PARA COBRAR: Usamos la lógica "ANTIGUA" (Por movimiento)
+        // Esto te trae el valor que decías que "se estaba calculando bien".
+        const resCobrarOld = await pool.query(`
+            SELECT COALESCE(SUM(entrada - salida), 0) as total 
+            FROM financiero_cuentas_cobrar 
+            WHERE (entrada - salida) < 0
         `);
 
-        // D. Bancos (Opcional, para información)
+        // 2. PARA PAGAR: Usamos la lógica "NUEVA" (Custodia Neta por Cliente)
+        // Esto te trae exactamente el valor de "LES DEBEMOS" agrupado por cliente.
+        const resPagarNew = await pool.query(`
+            WITH SaldosPorCliente AS (
+                SELECT 
+                    cliente_documento, 
+                    cliente_nombre,
+                    SUM(entrada - salida) as saldo_neto
+                FROM financiero_cuentas_cobrar
+                GROUP BY cliente_documento, cliente_nombre
+            )
+            SELECT COALESCE(SUM(saldo_neto), 0) as total
+            FROM SaldosPorCliente
+            WHERE saldo_neto > 0
+        `);
+
+        // D. Bancos
         const resBancos = await pool.query(`
             SELECT 
                 (SELECT COALESCE(SUM(entrada - salida), 0) FROM financiero_bancolombia) +
@@ -821,8 +840,11 @@ app.get('/api/financiero/resultados/metricas-actuales', async (req, res) => {
             success: true,
             caja_diario: parseFloat(resCaja.rows[0].total),
             corresponsal: parseFloat(resCorr.rows[0].total),
-            terceros_cobrar: Math.abs(parseFloat(resTerceros.rows[0].por_cobrar)), // Lo mostramos positivo
-            terceros_pagar: parseFloat(resTerceros.rows[0].por_pagar),
+            
+            // Enviamos COBRAR (Antiguo) y PAGAR (Nuevo)
+            terceros_cobrar: Math.abs(parseFloat(resCobrarOld.rows[0].total)), 
+            terceros_pagar: parseFloat(resPagarNew.rows[0].total),
+            
             total_bancos: parseFloat(resBancos.rows[0].total_bancos)
         });
 
@@ -1488,6 +1510,21 @@ app.post('/api/financiero/config/clave-admin', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Error guardando clave admin' });
+    }
+});
+
+// --- AGREGAR ESTO EN src/financiero.js (Sección Cuentas por Cobrar) ---
+
+// 7. ELIMINAR CLIENTE COMPLETO (Borra todo el historial de ese documento)
+app.delete('/api/financiero/cuentas-cobrar/eliminar-cliente/:doc', async (req, res) => {
+    const { doc } = req.params;
+    try {
+        // Borramos todas las operaciones donde aparezca ese documento
+        await pool.query('DELETE FROM financiero_cuentas_cobrar WHERE cliente_documento = $1', [doc]);
+        res.json({ success: true, message: 'Cliente y sus movimientos eliminados correctamente' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error al eliminar cliente' });
     }
 });
 

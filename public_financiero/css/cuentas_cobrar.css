@@ -383,3 +383,147 @@ td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 0.9rem; color
         gap: 15px;
     }
 }
+
+/* --- NUEVOS ESTILOS PARA COLUMNAS SEPARADAS --- */
+
+.paneles-separados {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+    align-items: flex-start; /* Para que no se estiren */
+}
+
+.panel-columna {
+    flex: 1; /* Mitad y mitad */
+    background: #fff;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    min-height: 200px;
+}
+
+/* En pantallas pequeñas (celular), que se ponga una debajo de otra */
+@media (max-width: 768px) {
+    .paneles-separados { flex-direction: column; }
+}
+
+.titulo-seccion {
+    font-weight: bold;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #eee;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.titulo-seccion.rojo { color: #d32f2f; border-color: #ffcdd2; }
+.titulo-seccion.verde { color: #2e7d32; border-color: #c8e6c9; }
+
+/* Grid interno de cada columna */
+.clientes-grid-columna {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100%, 1fr)); /* Una tarjeta por fila dentro de la columna */
+    gap: 10px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* Botón de eliminar cliente en la tarjeta */
+.btn-delete-client {
+    background: #ffebee;
+    color: #d32f2f;
+    border: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: flex; justify-content: center; align-items: center;
+    margin-left: 5px;
+}
+.btn-delete-client:hover { background: #d32f2f; color: white; }
+
+.card-header-actions { align-items: center; }
+
+/* --- MODO LISTA COMPACTA (Solución de Espacio) --- */
+
+.cliente-fila {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 10px 15px;
+    margin-bottom: 8px; /* Espacio pequeño entre filas */
+    border-radius: 6px;
+    border-left: 5px solid #ccc; /* Color por defecto */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    transition: transform 0.1s, box-shadow 0.1s;
+    cursor: pointer;
+}
+
+.cliente-fila:hover {
+    transform: translateX(3px); /* Efecto sutil al pasar mouse */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+}
+
+/* Colores de estado para la fila */
+.cliente-fila.rojo { border-left-color: #e53935; background-color: #fffbfb; }
+.cliente-fila.verde { border-left-color: #2e7d32; background-color: #f1f8e9; }
+
+/* Distribución de elementos dentro de la fila */
+.fila-info {
+    display: flex;
+    flex-direction: column;
+    width: 40%; /* El nombre ocupa espacio */
+}
+
+.fila-nombre {
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Puntos suspensivos si es muy largo */
+}
+
+.fila-doc {
+    font-size: 0.75rem;
+    color: #777;
+}
+
+.fila-saldo {
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: right;
+    width: 30%;
+}
+
+.fila-actions {
+    display: flex;
+    gap: 5px;
+}
+
+/* Ajuste de botones para que sean pequeños */
+.btn-mini {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    transition: 0.2s;
+}
+
+.btn-hist { background: #eceff1; color: #546e7a; }
+.btn-hist:hover { background: #cfd8dc; color: #37474f; }
+
+.btn-del { background: #ffebee; color: #c62828; }
+.btn-del:hover { background: #ffcdd2; color: #b71c1c; }
+
+/* Texto de saldo */
+.txt-rojo { color: #c62828; }
+.txt-verde { color: #2e7d32; }

@@ -9,13 +9,11 @@ let datosSistema = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Sesión
     const userStr = sessionStorage.getItem('fin_user');
     if (!userStr) { window.location.href = 'login2.html'; return; }
     const user = JSON.parse(userStr);
     document.getElementById('userDisplay').textContent = user.nombre;
 
-    // 2. Cargar Datos
     cargarMetricas();
     cargarHistorial();
 });
@@ -27,18 +25,21 @@ async function cargarMetricas() {
         if(data.success) {
             datosSistema = {
                 caja: data.caja_diario,
-                corresponsal: data.corresponsal,
+                corresponsal: data.corresponsal, 
                 terceros_cobrar: data.terceros_cobrar,
-                terceros_pagar: data.terceros_pagar,
+                terceros_pagar: data.terceros_pagar, // ESTO ES CUSTODIA (Valor exacto de la otra pestaña)
                 bancos: data.total_bancos
             };
             
-            // Llenar inputs readonly
+            // 1. CAJA
             document.getElementById('sys_caja').value = fmt(datosSistema.caja);
-            document.getElementById('sys_pagar').value = fmt(datosSistema.corresponsal + datosSistema.terceros_pagar);
+            
+            // 2. PAGAR (SOLO CUSTODIA, SIN BANCOS, SIN NADA RARO)
+            document.getElementById('sys_pagar').value = fmt(datosSistema.terceros_pagar);
+            
+            // 3. COBRAR
             document.getElementById('sys_cobrar').value = fmt(datosSistema.terceros_cobrar);
             
-            // Sugerir bancos en el físico
             document.getElementById('fis_bancos').placeholder = datosSistema.bancos;
 
             calcular();
@@ -47,22 +48,28 @@ async function cargarMetricas() {
 }
 
 function calcular() {
-    // 1. Calcular TOTAL SISTEMA
+    // 1. Obtener Bases (Manual)
     const bases = parseFloat(document.getElementById('manual_base').value) || 0;
-    const totalSistema = datosSistema.caja + bases + datosSistema.terceros_cobrar - (datosSistema.corresponsal + datosSistema.terceros_pagar);
+    
+    // 2. TU FÓRMULA EXACTA:
+    // (Saldo Caja Diario + Saldo Cuentas por Pagar) - (Saldo Cuentas por Cobrar + Bases Caja)
+    
+    const bloqueSuma = datosSistema.caja + datosSistema.terceros_pagar;
+    const bloqueResta = datosSistema.terceros_cobrar + bases;
+    
+    const totalSistema = bloqueSuma - bloqueResta;
     
     document.getElementById('sys_total').textContent = fmt(totalSistema);
 
-    // 2. Calcular TOTAL FÍSICO
+    // 3. Calcular Total Físico (Lo que cuentas en billetes)
     const v = (id) => parseFloat(document.getElementById(id).value) || 0;
-    
-    // AQUÍ ESTABA EL ERROR: Se eliminó "+ v('fis_transf')"
     const totalFisico = v('fis_efectivo') + v('fis_monedas') + v('fis_bancos') + v('fis_qr') + v('fis_datafono');
     
     document.getElementById('fis_total').textContent = fmt(totalFisico);
 
-    // 3. Diferencia (El resto queda igual...)
+    // 4. Diferencia
     const diferencia = totalFisico - totalSistema;
+    
     const diffEl = document.getElementById('diff_value');
     const circle = document.getElementById('diff_circle');
     const icon = document.getElementById('diff_icon');
@@ -102,7 +109,7 @@ async function guardarCierre() {
         usuario_id: JSON.parse(sessionStorage.getItem('fin_user')).id,
         
         saldo_caja_diario: datosSistema.caja,
-        saldo_cuentas_por_pagar: datosSistema.corresponsal + datosSistema.terceros_pagar,
+        saldo_cuentas_por_pagar: datosSistema.terceros_pagar, // Guardamos Custodia
         saldo_cuentas_por_cobrar: datosSistema.terceros_cobrar,
         bases_caja: v('manual_base'),
         
@@ -111,12 +118,8 @@ async function guardarCierre() {
         diferencia: diff,
         
         detalles_fisicos: {
-            efectivo: v('fis_efectivo'),
-            monedas: v('fis_monedas'),
-            bancos: v('fis_bancos'),
-            qr: v('fis_qr'),
-            datafono: v('fis_datafono') 
-            // AQUÍ TAMBIÉN: Se eliminó la línea "transf: v('fis_transf')"
+            efectivo: v('fis_efectivo'), monedas: v('fis_monedas'), 
+            bancos: v('fis_bancos'), qr: v('fis_qr'), datafono: v('fis_datafono') 
         },
         observaciones: document.getElementById('observaciones').value
     };
@@ -127,12 +130,8 @@ async function guardarCierre() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
-        if(res.ok) {
-            alert('Cierre guardado con éxito');
-            location.reload();
-        } else {
-            alert('Error al guardar');
-        }
+        if(res.ok) { alert('Cierre guardado con éxito'); location.reload(); } 
+        else { alert('Error al guardar'); }
     } catch(e) { console.error(e); }
 }
 
@@ -148,15 +147,7 @@ async function cargarHistorial() {
         let tagText = Math.abs(diff) < 100 ? 'CUADRADO' : (diff > 0 ? 'SOBRANTE' : 'FALTANTE');
 
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${r.fecha.split('T')[0]}</td>
-            <td>${r.hora}</td>
-            <td>${fmt(r.bases_caja)}</td>
-            <td>${fmt(r.resultado_sistema)}</td>
-            <td>${fmt(r.total_fisico)}</td>
-            <td style="font-weight:bold; color: ${diff < 0 ? 'red' : 'black'}">${fmt(diff)}</td>
-            <td><span class="result-tag ${tagClass}">${tagText}</span></td>
-        `;
+        tr.innerHTML = `<td>${r.fecha.split('T')[0]}</td><td>${r.hora}</td><td>${fmt(r.bases_caja)}</td><td>${fmt(r.resultado_sistema)}</td><td>${fmt(r.total_fisico)}</td><td style="font-weight:bold; color: ${diff < 0 ? 'red' : 'black'}">${fmt(diff)}</td><td><span class="result-tag ${tagClass}">${tagText}</span></td>`;
         tbody.appendChild(tr);
     });
 }

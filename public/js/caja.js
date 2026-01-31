@@ -157,54 +157,92 @@ async function imprimirReporte() {
 
         const formato = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
 
-        // --- 1. ENCABEZADO (Letra normal 12px) ---
-        const divHeader = document.querySelector('.ticket-header');
-        divHeader.innerHTML = `
-            <div style="text-align: center; margin-bottom: 5px;">
-                <h3 style="margin: 0; font-size: 1.2rem;">CORRESPONSAL BANCARIO</h3>
-                <p style="margin: 2px 0;">T-Shop Technology</p>
-                <p style="margin: 2px 0; font-size: 0.8rem;">NIT: 123456789-0</p>
-            </div>
-            <div style="border-top: 1px dashed black; margin: 5px 0; width: 100%;"></div>
-            <div style="text-align: center; margin-top: 5px;">
-                <h4 style="margin: 0; font-size: 1rem;">REPORTE DE CIERRE</h4>
-                <div style="font-size: 0.8rem; margin-top: 4px;">
-                    <p style="margin: 0;"><strong>Fecha:</strong> ${data.fecha}</p>
-                    <p style="margin: 0;"><strong>Hora:</strong> ${new Date().toLocaleTimeString()}</p>
-                    <p style="margin: 0;"><strong>Cajero:</strong> ${usuario}</p>
-                </div>
-            </div>
+        // --- 0. ESTILOS DE IMPRESIÓN (INCRUSTADOS PARA FUERZA BRUTA) ---
+        // Esto asegura que la letra sea nítida y negra
+        const estilosImpresion = `
+            <style>
+                @media print {
+                    body, html, * {
+                        font-family: 'Courier New', Courier, monospace !important; /* Fuente tipo máquina de escribir (NÍTIDA) */
+                        color: #000000 !important; /* NEGRO PURO (Evita borrosidad) */
+                        text-shadow: none !important;
+                        background: none !important;
+                        font-weight: 600 !important; /* Un poco más gruesa para legibilidad */
+                    }
+                    /* Ocultar elementos no deseados */
+                    .no-print, nav, .navbar, button { display: none !important; }
+                    
+                    /* Ajuste de márgenes para tirilla */
+                    @page { margin: 0; size: auto; }
+                    body { margin: 5px; }
+
+                    /* Tablas limpias */
+                    table { width: 100%; border-collapse: collapse; }
+                    th { border-bottom: 2px solid black !important; padding: 2px 0; }
+                    td { border-bottom: 1px dashed black !important; padding: 2px 0; }
+                    
+                    /* Títulos de grupo limpios (Sin fondo gris) */
+                    .grupo-header { 
+                        border-top: 2px solid black; 
+                        border-bottom: 1px solid black; 
+                        margin-top: 5px; 
+                        text-transform: uppercase;
+                    }
+                }
+            </style>
         `;
 
-        // --- 2. RESUMEN (Letra normal) ---
+        // Inyectamos los estilos al documento antes de imprimir
+        const divEstilos = document.createElement('div');
+        divEstilos.innerHTML = estilosImpresion;
+        document.body.appendChild(divEstilos);
+
+        // --- 1. ENCABEZADO (Texto NEGRO y fuente MONOSPACE) ---
+        const divHeader = document.querySelector('.ticket-header');
+        divHeader.innerHTML = `
+            <div style="text-align: center; margin-bottom: 10px; font-family: 'Courier New', monospace;">
+                <h2 style="margin: 0; font-size: 1.4rem; font-weight: 900;">CORRESPONSAL BANCARIO</h2>
+                <p style="margin: 2px 0; font-weight: bold;">Surtitodo Ideal</p>
+                <p style="margin: 2px 0; font-size: 0.9rem;">NIT: 94253367-5</p>
+            </div>
+            <div style="border-top: 2px solid black; margin: 5px 0; width: 100%;"></div>
+            <div style="text-align: center; margin-top: 5px; font-family: 'Courier New', monospace;">
+                <h3 style="margin: 0; font-size: 1.1rem; font-weight: 900;">REPORTE DE CIERRE</h3>
+                <div style="font-size: 0.9rem; margin-top: 4px; text-align: left;">
+                    <p style="margin: 2px 0;"><strong>FECHA:</strong> ${data.fecha}</p>
+                    <p style="margin: 2px 0;"><strong>HORA:</strong> ${new Date().toLocaleTimeString()}</p>
+                    <p style="margin: 2px 0;"><strong>CAJERO:</strong> ${usuario}</p>
+                </div>
+            </div>
+            <div style="border-bottom: 2px solid black; margin: 5px 0; width: 100%;"></div>
+        `;
+
+        // --- 2. RESUMEN (Sin fondos, solo texto negro) ---
         const tbodyResumen = document.getElementById('printTablaResumen');
         tbodyResumen.innerHTML = '';
         data.resumen.forEach(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td style="padding: 2px 0;">${item.concepto} <small>(${item.cantidad})</small></td>
-                <td style="text-align:right;">${formato.format(item.total_valor)}</td>
+                <td style="padding: 4px 0; font-size: 11px;">${item.concepto} <br><small>(${item.cantidad} ops)</small></td>
+                <td style="text-align:right; font-size: 12px; font-weight: bold;">${formato.format(item.total_valor)}</td>
             `;
             tbodyResumen.appendChild(tr);
         });
 
-        // --- 3. DETALLE (4 COLUMNAS - Letra COMPACTA 10px) ---
+        // --- 3. DETALLE (Fuente compacta y nítida) ---
         const tbodyDetalle = document.getElementById('printTablaDetalle');
         tbodyDetalle.innerHTML = '';
         
-        // Inyectamos la cabecera con letra pequeña
+        // Cabecera limpia
         const thead = document.querySelector('.ticket-table-detail thead tr');
         if(thead) {
-            // Estilo fontSize: 10px para que los títulos entren bien
             thead.innerHTML = `
-                <th style="text-align:left; width:15%; font-size:10px;">Hora</th>
-                <th style="text-align:left; width:20%; font-size:10px;">Tipo</th>
-                <th style="text-align:left; width:40%; font-size:10px;">Ref/Desc</th>
-                <th style="text-align:right; width:25%; font-size:10px;">Valor</th>
+                <th style="text-align:left; width:15%; font-size:10px;">HORA</th>
+                <th style="text-align:left; width:55%; font-size:10px;">DESCRIPCIÓN</th>
+                <th style="text-align:right; width:30%; font-size:10px;">VALOR</th>
             `;
         }
 
-        // Agrupación de datos
         const grupos = {};
         data.detalle.forEach(mov => {
             if (!grupos[mov.tipo]) grupos[mov.tipo] = [];
@@ -212,30 +250,24 @@ async function imprimirReporte() {
         });
 
         for (const [tipo, movimientos] of Object.entries(grupos)) {
-            // Título de Grupo (Gris)
+            // Título de Grupo: SIN FONDO GRIS, solo negrita y bordes
             const trHeader = document.createElement('tr');
             trHeader.innerHTML = `
-                <td colspan="4" style="font-weight:bold; font-size:9px; background-color:#f0f0f0; padding: 4px 0 2px 0; border-bottom: 1px solid #000; text-transform:uppercase;">
-                    ${tipo}
+                <td colspan="3" style="font-weight:900; font-size:11px; padding: 8px 0 2px 0; border-bottom: 1px solid black; text-transform:uppercase;">
+                    >> ${tipo}
                 </td>
             `;
             tbodyDetalle.appendChild(trHeader);
 
-            // Filas de Transacciones
             movimientos.forEach(mov => {
                 const tr = document.createElement('tr');
-                
-                // Recortes de texto para seguridad visual
-                const tipoCorto = mov.tipo.length > 8 ? mov.tipo.substring(0,8) + '.' : mov.tipo;
-                // Descripción: Permitimos que haga 'wrap' (baje de línea) si es larga
-                
+                // Quitamos la columna "Tipo" para dar más espacio a la descripción
                 tr.innerHTML = `
-                    <td style="width:15%; vertical-align:top; font-size:9px; padding-top:2px;">${mov.hora}</td>
-                    <td style="width:20%; vertical-align:top; font-size:9px; padding-top:2px;">${tipoCorto}</td>
-                    <td style="width:40%; vertical-align:top; font-size:9px; overflow-wrap:anywhere; padding-right:2px; padding-top:2px; line-height:1.1;">
+                    <td style="vertical-align:top; font-size:10px; padding-top:2px;">${mov.hora}</td>
+                    <td style="vertical-align:top; font-size:10px; padding-top:2px; padding-right:5px; line-height:1.1;">
                         ${mov.descripcion}
                     </td>
-                    <td style="width:25%; text-align:right; vertical-align:top; font-size:9px; padding-top:2px;">${formato.format(mov.monto)}</td>
+                    <td style="text-align:right; vertical-align:top; font-size:10px; padding-top:2px; font-weight:bold;">${formato.format(mov.monto)}</td>
                 `;
                 tbodyDetalle.appendChild(tr);
             });
@@ -244,15 +276,18 @@ async function imprimirReporte() {
         // Total Final
         const saldoSistema = document.getElementById('resSistema').textContent;
         document.getElementById('printTotalFinal').textContent = saldoSistema;
+        document.getElementById('printTotalFinal').style.fontWeight = "900"; // Extra negrita
+        document.getElementById('printTotalFinal').style.fontSize = "1.2rem";
 
+        // Imprimir y luego remover los estilos para no afectar la web normal
         window.print();
+        setTimeout(() => { document.body.removeChild(divEstilos); }, 1000);
 
     } catch (error) {
         console.error("Error al imprimir:", error);
         alert("Hubo un error generando el reporte");
     }
 }
-
 // --- FUNCIONES PARA EL MODAL DE NUEVO TURNO ---
 
 function prepararNuevoTurno() {

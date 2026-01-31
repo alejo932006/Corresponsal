@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/cuentas_cobrar.css">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -37,7 +38,7 @@
         </div>
 
         <div class="stats-row">
-            <div class="stat-card card-red">
+            <div class="stat-card card-green">
                 <div class="stat-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
                 <div class="stat-info">
                     <span>NOS DEBEN (CARTERA)</span>
@@ -45,7 +46,7 @@
                 </div>
             </div>
             
-            <div class="stat-card card-green">
+            <div class="stat-card card-red">
                 <div class="stat-icon"><i class="fa-solid fa-piggy-bank"></i></div>
                 <div class="stat-info">
                     <span>LES DEBEMOS (CUSTODIA)</span>
@@ -73,8 +74,23 @@
         
         </div>
 
-        <div id="gridClientes" class="clientes-grid">
+        <div class="paneles-separados">
+            <div class="panel-columna">
+                <div class="titulo-seccion verde">
+                    <i class="fa-solid fa-hand-holding-dollar"></i> ME DEBEN (CARTERA)
+                </div>
+                <div id="gridMeDeben" class="clientes-grid-columna"></div>
             </div>
+
+            <div class="panel-columna">
+                <div class="titulo-seccion rojo">
+                    <i class="fa-solid fa-piggy-bank"></i> LES DEBO (CUSTODIA)
+                </div>
+                <div id="gridLesDebo" class="clientes-grid-columna"></div>
+            </div>
+        </div>
+
+        <div id="gridPazSalvo" style="display:none;"></div>
 
         <div class="card-table mt-4">
             <h3><i class="fa-solid fa-clock-rotate-left"></i> Historial de Movimientos</h3>
