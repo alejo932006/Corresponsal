@@ -788,45 +788,35 @@ app.get('/api/financiero/cuentas-cobrar/historial-cliente', async (req, res) => 
 // MÓDULO RESULTADOS (CIERRE Y ARQUEO)
 // ==========================================
 
-/* src/financiero.js - Reemplaza la ruta de métricas actuales */
-
-// 1. OBTENER SALDOS EN TIEMPO REAL
+// 1. OBTENER SALDOS EN TIEMPO REAL (CORREGIDO)
 app.get('/api/financiero/resultados/metricas-actuales', async (req, res) => {
     try {
         // A. Saldo Caja Diario
         const resCaja = await pool.query('SELECT COALESCE(SUM(entrada - salida), 0) as total FROM financiero_caja_diario');
         
-        // B. Saldo Corresponsal (Informativo)
+        // B. Saldo Corresponsal
         const resCorr = await pool.query(`
             SELECT COALESCE(SUM(
                 (deposito + recaudo + pago_tc + pago_cartera) - (retiro + compensacion)
             ), 0) as total FROM financiero_corresponsal
         `);
 
-        // C. CÁLCULO HÍBRIDO (LO QUE TÚ NECESITAS)
-        
-        // 1. PARA COBRAR: Usamos la lógica "ANTIGUA" (Por movimiento)
-        // Esto te trae el valor que decías que "se estaba calculando bien".
-        const resCobrarOld = await pool.query(`
-            SELECT COALESCE(SUM(entrada - salida), 0) as total 
-            FROM financiero_cuentas_cobrar 
-            WHERE (entrada - salida) < 0
-        `);
-
-        // 2. PARA PAGAR: Usamos la lógica "NUEVA" (Custodia Neta por Cliente)
-        // Esto te trae exactamente el valor de "LES DEBEMOS" agrupado por cliente.
-        const resPagarNew = await pool.query(`
+        // C. CÁLCULO UNIFICADO POR CLIENTE (SINTAXIS SQL CORREGIDA)
+        const resTerceros = await pool.query(`
             WITH SaldosPorCliente AS (
                 SELECT 
                     cliente_documento, 
                     cliente_nombre,
                     SUM(entrada - salida) as saldo_neto
                 FROM financiero_cuentas_cobrar
+                WHERE cliente_nombre IS NOT NULL AND cliente_nombre <> ''
                 GROUP BY cliente_documento, cliente_nombre
             )
-            SELECT COALESCE(SUM(saldo_neto), 0) as total
+            SELECT 
+                -- Corrección: El FILTER va DENTRO del COALESCE
+                COALESCE(SUM(ABS(saldo_neto)) FILTER (WHERE saldo_neto < 0), 0) as total_cobrar,
+                COALESCE(SUM(saldo_neto) FILTER (WHERE saldo_neto > 0), 0) as total_pagar
             FROM SaldosPorCliente
-            WHERE saldo_neto > 0
         `);
 
         // D. Bancos
@@ -841,15 +831,15 @@ app.get('/api/financiero/resultados/metricas-actuales', async (req, res) => {
             caja_diario: parseFloat(resCaja.rows[0].total),
             corresponsal: parseFloat(resCorr.rows[0].total),
             
-            // Enviamos COBRAR (Antiguo) y PAGAR (Nuevo)
-            terceros_cobrar: Math.abs(parseFloat(resCobrarOld.rows[0].total)), 
-            terceros_pagar: parseFloat(resPagarNew.rows[0].total),
+            // Asignamos los valores calculados
+            terceros_cobrar: parseFloat(resTerceros.rows[0].total_cobrar || 0), 
+            terceros_pagar: parseFloat(resTerceros.rows[0].total_pagar || 0),
             
             total_bancos: parseFloat(resBancos.rows[0].total_bancos)
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Error calculando métricas:', error);
         res.status(500).json({ success: false, message: 'Error calculando métricas' });
     }
 });

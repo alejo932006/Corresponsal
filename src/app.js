@@ -829,7 +829,7 @@ app.post('/api/admin/abrir-cajon', (req, res) => {
         fs.writeFileSync(tempFile, comandoApertura);
 
         // DATOS DE CONEXIÓN (Modifica si cambiaste usuario/clave)
-        const IP = "192.168.0.235"; 
+        const IP = "192.168.0.254"; 
         const IMPRESORA = "IMPREPOS";
         const USUARIO = "cajero";
         const CLAVE = "1234";
@@ -844,7 +844,7 @@ app.post('/api/admin/abrir-cajon', (req, res) => {
 
         console.log("Autenticando y enviando...");
 
-        exec(comandoCMD, (error, stdout, stderr) => {
+        exec(comandoCMD, { windowsHide: true }, (error, stdout, stderr) => {
             try { fs.unlinkSync(tempFile); } catch(e){} 
 
             if (error) {
