@@ -5,6 +5,7 @@ let carritoCliente = []; // Lista temporal de operaciones del cliente actual
 let totalGlobal = 0;     // Total a cobrar al cliente actual
 let todosLosTipos = [];  // Para guardar la configuración de tipos
 let baseActual = 0;      // Para el control de caja (ajustes)
+let procesandoAjuste = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Cargar Usuario
@@ -839,52 +840,53 @@ async function cargarSaldosBancos() {
 }
 
 async function ajustarCupoBanco(bancoId, nombreBanco, saldoActual) {
-    // 1. BLOQUEO DE SEGURIDAD
+    // 0. BLOQUEO DE DOBLE EJECUCIÓN
+    if (procesandoAjuste) return; 
+
+    // 1. AUTORIZACIÓN
     const autorizado = await solicitarAutorizacionAdmin();
     if (!autorizado) return;
 
-    // 2. Lógica Original
-    const nuevoValorStr = prompt(`🔓 MODO ADMIN ACTIVO - ${nombreBanco}\n\nEl sistema dice: $${saldoActual}\n\n¿Cuánto dinero hay REALMENTE en la plataforma?`);
-    // ... resto de tu código igual ...
-    if (nuevoValorStr === null) return;
+    // 2. PEDIR DATOS
+    const nuevoValorStr = prompt(`🔓 AJUSTE DE CUPO - ${nombreBanco}\n\nSistema: $${new Intl.NumberFormat('es-CO').format(saldoActual)}\n\nIngrese el saldo REAL de la plataforma:`, saldoActual);
     
-    const nuevoValor = parseInt(nuevoValorStr.replace(/\D/g, '')); // Limpiar símbolos
-    if (isNaN(nuevoValor)) return alert("Por favor ingresa un número válido.");
+    if (nuevoValorStr === null) return; // Cancelado
 
+    const nuevoValor = parseInt(nuevoValorStr.replace(/\D/g, ''));
+    if (isNaN(nuevoValor)) return alert("❌ Número inválido.");
+
+    // 3. CALCULAR DIFERENCIA EXACTA (Positiva o Negativa)
     const diferencia = nuevoValor - saldoActual;
 
-    if (diferencia === 0) return alert("El saldo está cuadrado, no es necesario ajustar.");
+    if (diferencia === 0) return alert("✅ El saldo ya está cuadrado.");
 
-    // 2. Determinar si es un ajuste positivo o negativo
-    const tipoAjuste = diferencia > 0 ? 'SOBRANTE' : 'FALTANTE';
-    const mensajeConfirmacion = `Vas a ajustar el saldo de ${nombreBanco}.\n\n` +
-                                `Sistema: ${saldoActual}\n` +
-                                `Real: ${nuevoValor}\n` +
-                                `Diferencia: ${diferencia > 0 ? '+' : ''}${diferencia}\n\n` +
-                                `¿Confirmar ajuste?`;
+    // 4. PREPARAR MENSAJE
+    const accion = diferencia > 0 ? "SUMAR AL SISTEMA" : "RESTAR AL SISTEMA";
+    const mensaje = `CONFIRMAR AJUSTE:\n` +
+                    `---------------------\n` +
+                    `Sistema: $ ${new Intl.NumberFormat('es-CO').format(saldoActual)}\n` +
+                    `Real:    $ ${new Intl.NumberFormat('es-CO').format(nuevoValor)}\n` +
+                    `---------------------\n` +
+                    `Acción:  ${accion} ($ ${new Intl.NumberFormat('es-CO').format(diferencia)})\n\n` +
+                    `¿Confirmar ajuste?`;
 
-    if (!confirm(mensajeConfirmacion)) return;
+    if (!confirm(mensaje)) return;
 
-    // 3. Enviar transacción de ajuste
+    // 5. ENVIAR AL SERVIDOR (ID 11 SIEMPRE)
     try {
+        procesandoAjuste = true; // ACTIVAMOS EL BLOQUEO
         const usuario = localStorage.getItem('usuario_nombre');
         
-        // IMPORTANTE: Necesitas un ID de tipo de transacción para "AJUSTE DE CUPO" en tu base de datos.
-        // Asumiremos que el ID 99 es "Ajuste Contable" (Crea este tipo en tu BD si no existe).
-        const ID_TIPO_AJUSTE = 11; // <--- CAMBIA ESTO POR EL ID REAL DE TU TIPO "AJUSTE" O "CUADRE"
-
-        // Si la diferencia es positiva, entra dinero al banco (RECAUDO interno).
-        // Si es negativa, sale dinero (TESORERIA interna).
-        // Sin embargo, para simplificar, enviaremos el monto tal cual y el backend sumará algebraicamente.
-        
-        // Truco: Para ajustar, insertamos una transacción por la diferencia exacta.
+        // SEGÚN TU TABLA: ID 11 es "Ajuste Cupo Banco" (afecta_banco=1, afecta_caja=0)
+        // Enviamos 'diferencia' con su signo. 
+        // Si es -10000, la BD hará (-10000 * 1) = -10000. RESTA.
         
         const payload = {
             banco_id: bancoId,
-            tipo_id: ID_TIPO_AJUSTE, 
-            monto: Math.abs(diferencia), // Enviamos siempre positivo, la categoría define si suma o resta
-            categoria: diferencia > 0 ? 'RECAUDO' : 'TESORERIA', // Recaudo suma al banco, Tesoreria resta
-            descripcion: `Ajuste de Cupo (Manual): ${saldoActual} -> ${nuevoValor}`,
+            tipo_id: 11, 
+            monto: diferencia, 
+            categoria: 'GENERAL', // Categoría informativa
+            descripcion: `Ajuste Cupo: ${saldoActual} -> ${nuevoValor}`,
             usuario_nombre: usuario
         };
 
@@ -897,15 +899,18 @@ async function ajustarCupoBanco(bancoId, nombreBanco, saldoActual) {
         const data = await res.json();
         
         if (data.success) {
-            alert("✅ Ajuste realizado con éxito.");
-            cargarSaldosBancos(); // Recargar la lista visual
+            alert("✅ Ajuste realizado correctamente.");
+            cargarSaldosBancos(); 
         } else {
             alert("❌ Error: " + data.message);
         }
 
     } catch (error) {
         console.error(error);
-        alert("Error de conexión al ajustar.");
+        alert("Error de conexión.");
+    } finally {
+        // 6. LIBERAR EL BLOQUEO (IMPORTANTE)
+        setTimeout(() => { procesandoAjuste = false; }, 1000);
     }
 }
 
