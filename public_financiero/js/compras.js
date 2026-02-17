@@ -153,9 +153,16 @@ async function marcarPagada(id) {
         const data = await res.json();
         
         if(data.success) {
-            // Recargamos la lista (la factura desaparecerá de pendientes)
+            // Recargamos la lista principal
             cargarCompras();
-            checkAlertas(); // Actualizamos las alertas por si esa estaba vencida
+            // Actualizamos el número del contador de alertas
+            checkAlertas(); 
+            
+            // NUEVO: Si el modal de alertas está abierto, lo recargamos para que desaparezca la factura pagada
+            if (document.getElementById('modalAlertas').style.display === 'flex') {
+                verAlertas();
+            }
+            
             alert('Factura marcada como pagada.');
         } else {
             alert('Error al actualizar.');
@@ -194,7 +201,8 @@ async function checkAlertas() {
 async function verAlertas() {
     const modal = document.getElementById('modalAlertas');
     const tbody = document.getElementById('tablaAlertasCuerpo');
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center">Cargando...</td></tr>';
+    // Cambiamos el colspan a 6
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando...</td></tr>';
     modal.style.display = 'flex';
 
     try {
@@ -203,7 +211,8 @@ async function verAlertas() {
         tbody.innerHTML = '';
 
         if (data.datos.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center">¡Todo al día! No hay facturas próximas a vencer.</td></tr>';
+            // Cambiamos el colspan a 6
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">¡Todo al día! No hay facturas próximas a vencer.</td></tr>';
         } else {
             data.datos.forEach(f => {
                 const dias = parseInt(f.dias_restantes);
@@ -220,6 +229,11 @@ async function verAlertas() {
                     <td>${f.fecha_vencimiento}</td>
                     <td class="text-center">${etiqueta}</td>
                     <td class="text-right" style="font-weight:bold;">${fmt(f.valor)}</td>
+                    <td class="text-center">
+                        <button class="btn-pay" onclick="marcarPagada(${f.id})" title="Marcar como Pagada" style="background:#2e7d32; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">
+                            <i class="fa-solid fa-check"></i> Pagar
+                        </button>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
