@@ -1095,13 +1095,15 @@ app.get('/api/financiero/erp/proveedores', async (req, res) => {
 // MÓDULO COMPRAS DE MERCANCÍA
 // ==========================================
 
-// 1. OBTENER LISTA DE COMPRAS
-// 1. OBTENER LISTA DE COMPRAS (Con filtro de estado)
+// 1. OBTENER LISTA DE COMPRAS (Con filtro de estado y búsquedas personalizadas)
 app.get('/api/financiero/compras', async (req, res) => {
-    const estado = req.query.estado || 'PENDIENTE'; // Por defecto trae las pendientes
+    const estado = req.query.estado || 'PENDIENTE'; 
+    const busqueda = req.query.busqueda || '';
+    const valor = req.query.valor || '';
+    const fecha = req.query.fecha || '';
     
     try {
-        const query = `
+        let query = `
             SELECT id, nombre_proveedor, nit, numero_factura, valor, 
                    to_char(fecha_ingreso, 'YYYY-MM-DD') as fecha_ingreso,
                    plazo_dias,
@@ -1110,9 +1112,36 @@ app.get('/api/financiero/compras', async (req, res) => {
                    to_char(fecha_pago, 'YYYY-MM-DD HH12:MI AM') as fecha_pago_formato
             FROM financiero_compras
             WHERE estado = $1
-            ORDER BY fecha_ingreso DESC, id DESC LIMIT 100
         `;
-        const result = await pool.query(query, [estado]);
+        
+        let params = [estado];
+        let paramCount = 2;
+
+        // Si escriben NIT, Proveedor o Factura
+        if (busqueda) {
+            query += ` AND (nit ILIKE $${paramCount} OR nombre_proveedor ILIKE $${paramCount} OR numero_factura ILIKE $${paramCount})`;
+            params.push(`%${busqueda}%`);
+            paramCount++;
+        }
+
+        // Si escriben el valor exacto
+        if (valor) {
+            query += ` AND valor = $${paramCount}`;
+            params.push(valor);
+            paramCount++;
+        }
+
+        // Si eligen una fecha
+        if (fecha) {
+            // Filtra por la fecha de ingreso de la factura
+            query += ` AND fecha_ingreso = $${paramCount}`;
+            params.push(fecha);
+            paramCount++;
+        }
+
+        query += ` ORDER BY fecha_ingreso DESC, id DESC LIMIT 100`;
+
+        const result = await pool.query(query, params);
         res.json({ success: true, datos: result.rows });
     } catch (error) {
         console.error(error);

@@ -100,6 +100,24 @@
                     <i class="fa-solid fa-check-double"></i> Historial Pagadas
                 </button>
             </div>
+
+            <div class="filter-bar" style="display: flex; gap: 10px; margin-bottom: 15px; background: #f4f6f8; padding: 12px; border-radius: 6px;">
+                <div style="flex: 1; display: flex; align-items: center; background: white; padding: 0 10px; border-radius: 4px; border: 1px solid #ddd;">
+                    <i class="fa-solid fa-magnifying-glass" style="color: #666;"></i>
+                    <input type="text" id="filtroTexto" placeholder="Buscar por NIT, Proveedor o Factura..." oninput="cargarCompras()" style="width: 100%; border: none; padding: 8px; outline: none;">
+                </div>
+                <div style="display: flex; align-items: center; background: white; padding: 0 10px; border-radius: 4px; border: 1px solid #ddd;">
+                    <i class="fa-solid fa-dollar-sign" style="color: #666;"></i>
+                    <input type="number" id="filtroValor" placeholder="Valor exacto..." oninput="cargarCompras()" style="width: 120px; border: none; padding: 8px; outline: none;">
+                </div>
+                <div style="display: flex; align-items: center; background: white; padding: 0 10px; border-radius: 4px; border: 1px solid #ddd;">
+                    <input type="date" id="filtroFecha" onchange="cargarCompras()" style="border: none; padding: 8px; outline: none; color: #555;">
+                </div>
+                <button onclick="limpiarFiltrosCompras()" style="padding: 8px 15px; background: #e53935; color: white; border: none; border-radius: 4px; cursor: pointer;" title="Borrar Filtros">
+                    <i class="fa-solid fa-eraser"></i>
+                </button>
+            </div>
+            
             <table>
                 <thead>
                     <tr>

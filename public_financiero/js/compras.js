@@ -71,29 +71,37 @@ function calcularVencimiento() {
 }
 
 // --- CARGAR TABLA PRINCIPAL ---
-// --- FUNCIÓN DE CARGA ACTUALIZADA ---
 async function cargarCompras() {
     try {
-        // Ahora pedimos al backend según el estado actual
-        const res = await fetch(`/api/financiero/compras?estado=${estadoActual}`);
+        // Capturar los valores de los filtros si existen
+        const inputTexto = document.getElementById('filtroTexto');
+        const inputValor = document.getElementById('filtroValor');
+        const inputFecha = document.getElementById('filtroFecha');
+
+        const texto = inputTexto ? inputTexto.value : '';
+        const valor = inputValor ? inputValor.value : '';
+        const fecha = inputFecha ? inputFecha.value : '';
+
+        // Ahora pedimos al backend incluyendo los filtros en la URL
+        const url = `/api/financiero/compras?estado=${estadoActual}&busqueda=${encodeURIComponent(texto)}&valor=${valor}&fecha=${fecha}`;
+        const res = await fetch(url);
         const data = await res.json();
+        
         const tbody = document.getElementById('tablaCuerpo');
         tbody.innerHTML = '';
 
         if(data.datos.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay facturas en esta sección.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay facturas con estos criterios.</td></tr>';
             return;
         }
 
         data.datos.forEach(f => {
             const tr = document.createElement('tr');
             
-            // Lógica para definir qué mostrar en la columna de fechas y acciones
             let infoFecha = '';
             let botonesAccion = '';
 
             if (estadoActual === 'PENDIENTE') {
-                // Si es pendiente, mostramos vencimiento y botón de pagar
                 infoFecha = `<span style="color: #d32f2f; font-weight:bold;">${f.fecha_vencimiento}</span>`;
                 botonesAccion = `
                     <button class="btn-pay" onclick="marcarPagada(${f.id})" title="Marcar como Pagada" style="background:#2e7d32; color:white; border:none; padding:5px 10px; border-radius:4px; margin-right:5px; cursor:pointer;">
@@ -102,7 +110,6 @@ async function cargarCompras() {
                     <button class="btn-delete" onclick="eliminarCompra(${f.id})"><i class="fa-solid fa-trash"></i></button>
                 `;
             } else {
-                // Si es pagada, mostramos cuándo se pagó y solo botón borrar (opcional)
                 infoFecha = `<span style="color: #2e7d32; font-weight:bold;">Pagado: ${f.fecha_pago_formato || '---'}</span>`;
                 botonesAccion = `<i class="fa-solid fa-check-double" style="color:#2e7d32;"></i>`;
             }
@@ -121,6 +128,14 @@ async function cargarCompras() {
             tbody.appendChild(tr);
         });
     } catch(e) { console.error(e); }
+}
+
+// Nueva función para limpiar los filtros fácilmente
+function limpiarFiltrosCompras() {
+    if(document.getElementById('filtroTexto')) document.getElementById('filtroTexto').value = '';
+    if(document.getElementById('filtroValor')) document.getElementById('filtroValor').value = '';
+    if(document.getElementById('filtroFecha')) document.getElementById('filtroFecha').value = '';
+    cargarCompras();
 }
 
 // --- NUEVAS FUNCIONES ---
