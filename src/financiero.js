@@ -1535,11 +1535,21 @@ app.post('/api/financiero/config/clave-admin', async (req, res) => {
 // --- AGREGAR ESTO EN src/financiero.js (Sección Cuentas por Cobrar) ---
 
 // 7. ELIMINAR CLIENTE COMPLETO (Borra todo el historial de ese documento)
-app.delete('/api/financiero/cuentas-cobrar/eliminar-cliente/:doc', async (req, res) => {
-    const { doc } = req.params;
+// 7. ELIMINAR CLIENTE COMPLETO (Soporta clientes con o sin documento)
+app.delete('/api/financiero/borrar-cliente-terceros', async (req, res) => {
+    const { doc, nombre } = req.query;
+    
     try {
-        // Borramos todas las operaciones donde aparezca ese documento
-        await pool.query('DELETE FROM financiero_cuentas_cobrar WHERE cliente_documento = $1', [doc]);
+        if (doc && doc !== 'undefined' && doc.trim() !== '') {
+            // Si tiene documento, borramos usando el documento
+            await pool.query('DELETE FROM financiero_cuentas_cobrar WHERE cliente_documento = $1', [doc]);
+        } else if (nombre && nombre !== 'undefined' && nombre.trim() !== '') {
+            // Si NO tiene documento, borramos buscando su nombre exacto
+            await pool.query("DELETE FROM financiero_cuentas_cobrar WHERE cliente_nombre = $1 AND (cliente_documento = '' OR cliente_documento IS NULL)", [nombre]);
+        } else {
+            return res.status(400).json({ success: false, message: 'Se requiere documento o nombre válido para eliminar.' });
+        }
+        
         res.json({ success: true, message: 'Cliente y sus movimientos eliminados correctamente' });
     } catch (error) {
         console.error(error);

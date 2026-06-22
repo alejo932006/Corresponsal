@@ -67,6 +67,10 @@
                     <i class="fa-solid fa-server"></i> CONSULTAR ERP
                 </button>
                 
+                <button class="btn-erp" onclick="abrirModalPazSalvo()" style="background-color: #607d8b; color: white; border-color: #455a64;">
+                    <i class="fa-solid fa-check-double"></i> PAZ Y SALVO <span id="badgePazSalvo" style="background: white; color: #607d8b; padding: 2px 6px; border-radius: 10px; font-weight: bold; margin-left: 5px; font-size: 0.8rem;">0</span>
+                </button>
+                
                 <button class="btn-new-client" onclick="abrirModalCliente()">
                     <i class="fa-solid fa-user-plus"></i> NUEVO CLIENTE
                 </button>
@@ -90,7 +94,6 @@
             </div>
         </div>
 
-        <div id="gridPazSalvo" style="display:none;"></div>
 
         <div class="card-table mt-4">
             <h3><i class="fa-solid fa-clock-rotate-left"></i> Historial de Movimientos</h3>
@@ -268,6 +271,25 @@
                         <i class="fa-solid fa-rotate"></i> SINCRONIZAR TODO
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalPazSalvo" class="modal-overlay" style="display: none;">
+        <div class="modal-content modal-lg" style="max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header-custom" style="background: #607d8b;">
+                <div class="client-title">
+                    <h2><i class="fa-solid fa-check-double"></i> Clientes en Paz y Salvo</h2>
+                    <span class="badge-doc">Saldo $0</span>
+                </div>
+                <button onclick="cerrarModalPazSalvo()" class="close-btn-white">&times;</button>
+            </div>
+            <div class="modal-body-custom" style="overflow-y: auto; flex: 1; padding: 15px; background: #f5f7fa;">
+                <p style="margin-bottom: 15px; color: #666; text-align: center;">Estos clientes ya no tienen deudas ni saldos a favor. Puedes ver su historial o eliminarlos definitivamente para limpiar la base de datos.</p>
+                <div id="gridPazSalvo" class="clientes-grid-columna"></div>
+            </div>
+            <div class="modal-footer-custom" style="padding: 15px; background: #fff; border-top: 1px solid #eee;">
+                <button onclick="cerrarModalPazSalvo()" class="btn-cancel" style="width: 100%; margin: 0;">CERRAR</button>
             </div>
         </div>
     </div>

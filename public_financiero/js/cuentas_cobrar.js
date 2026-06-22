@@ -144,40 +144,44 @@ async function cargarClientes() {
 function renderClientes(lista) {
     const gridMeDeben = document.getElementById('gridMeDeben');
     const gridLesDebo = document.getElementById('gridLesDebo');
+    const gridPazSalvo = document.getElementById('gridPazSalvo');
     
     gridMeDeben.innerHTML = '';
     gridLesDebo.innerHTML = '';
+    gridPazSalvo.innerHTML = '';
 
     if(lista.length === 0) {
         gridMeDeben.innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-style:italic;">No hay deudores</div>';
         gridLesDebo.innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-style:italic;">No hay acreedores</div>';
+        gridPazSalvo.style.display = 'none';
         return;
     }
 
     lista.forEach(c => {
         const saldo = parseFloat(c.saldo);
-        if (Math.abs(saldo) < 1) return; // Ignorar ceros
-
+        
         let claseColor = '';
         let claseTexto = '';
         let destino = null;
-        let valorMostrar = saldo;
+        let valorMostrar = Math.abs(saldo);
 
-        // --- LÓGICA DE COLORES ACTUALIZADA ---
-        if (saldo > 0) {
+        // --- NUEVA LÓGICA DE CLASIFICACIÓN ---
+        if (Math.abs(saldo) < 1) {
+            // SALDO 0: Ya no se ignora, se va a PAZ Y SALVO
+            destino = gridPazSalvo;
+            claseColor = ''; // Sin color de fondo destacado
+            claseTexto = 'txt-gris'; // Puedes definir un color gris en tu CSS si deseas
+            valorMostrar = 0;
+        } else if (saldo > 0) {
             // SALDO > 0: TÚ tienes el dinero -> "LES DEBO"
-            // Color: ROJO (Deuda para ti)
             destino = gridLesDebo;
-            claseColor = 'rojo';       // Fila roja
-            claseTexto = 'txt-rojo';   // Texto rojo
-            valorMostrar = saldo; 
+            claseColor = 'rojo';       
+            claseTexto = 'txt-rojo';   
         } else {
             // SALDO < 0: ELLOS tienen tu dinero -> "ME DEBEN"
-            // Color: VERDE (Activo para ti)
             destino = gridMeDeben;
-            claseColor = 'verde';      // Fila verde
-            claseTexto = 'txt-verde';  // Texto verde
-            valorMostrar = Math.abs(saldo); 
+            claseColor = 'verde';      
+            claseTexto = 'txt-verde';  
         }
 
         const row = document.createElement('div');
@@ -203,7 +207,7 @@ function renderClientes(lista) {
                     onclick="verHistorial('${c.cliente_documento||''}', '${c.cliente_nombre}')">
                     <i class="fa-solid fa-list-ul"></i>
                 </button>
-                <button class="btn-mini btn-del" title="Eliminar Cliente" 
+                <button class="btn-mini btn-del" title="Eliminar definitivamente todo el historial" 
                     onclick="eliminarClienteTotal('${c.cliente_documento}', '${c.cliente_nombre}')">
                     <i class="fa-solid fa-trash"></i>
                 </button>
@@ -212,18 +216,34 @@ function renderClientes(lista) {
 
         if(destino) destino.appendChild(row);
     });
+
+    // --- RENDERIZAR PANEL DE PAZ Y SALVO SI HAY CLIENTES EN $0 ---
+    if(gridPazSalvo.children.length > 0) {
+        gridPazSalvo.style.display = 'block';
+        gridPazSalvo.style.marginTop = '30px';
+        gridPazSalvo.insertAdjacentHTML('afterbegin', `
+            <div class="titulo-seccion" style="background:#607d8b; color:white; border-radius: 5px; margin-bottom: 10px;">
+                <i class="fa-solid fa-check-double"></i> PAZ Y SALVO (Listos para ser borrados)
+            </div>
+        `);
+    } else {
+        gridPazSalvo.style.display = 'none';
+    }
 }
 
-// --- NUEVA FUNCIÓN PARA ELIMINAR CLIENTE COMPLETO ---
+// --- NUEVA FUNCIÓN PARA ELIMINAR CLIENTE COMPLETO (Acepta sin ID) ---
 async function eliminarClienteTotal(doc, nombre) {
-    if(!doc) return alert('Error: Cliente sin documento');
-    
-    // Doble confirmación por seguridad
     if(!confirm(`⚠️ PELIGRO ⚠️\n\n¿Estás seguro de eliminar a ${nombre}?\n\nSe borrarán TODOS sus movimientos y su saldo quedará eliminado.`)) return;
     if(!confirm(`Confirma nuevamente: ¿Eliminar definitivamente a ${nombre}?`)) return;
 
+    const params = new URLSearchParams({
+        doc: doc || '',
+        nombre: nombre || ''
+    });
+
     try {
-        const res = await fetch(`/api/financiero/cuentas-cobrar/eliminar-cliente/${doc}`, {
+        // AQUÍ CAMBIAMOS LA URL PARA QUE NO CHOQUE CON LAS OTRAS RUTAS
+        const res = await fetch(`/api/financiero/borrar-cliente-terceros?${params.toString()}`, {
             method: 'DELETE'
         });
         const data = await res.json();
@@ -539,6 +559,105 @@ async function sincronizarTodo() {
         alert('Error de conexión');
         btnSync.disabled = false;
     }
+}
+
+function renderClientes(lista) {
+    const gridMeDeben = document.getElementById('gridMeDeben');
+    const gridLesDebo = document.getElementById('gridLesDebo');
+    const gridPazSalvo = document.getElementById('gridPazSalvo');
+    const badgePazSalvo = document.getElementById('badgePazSalvo'); 
+    
+    gridMeDeben.innerHTML = '';
+    gridLesDebo.innerHTML = '';
+    gridPazSalvo.innerHTML = '';
+
+    let contadorPazSalvo = 0;
+
+    if(lista.length === 0) {
+        gridMeDeben.innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-style:italic;">No hay deudores</div>';
+        gridLesDebo.innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-style:italic;">No hay acreedores</div>';
+        gridPazSalvo.innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-style:italic;">No hay clientes en paz y salvo</div>';
+        if(badgePazSalvo) badgePazSalvo.textContent = "0";
+        return;
+    }
+
+    lista.forEach(c => {
+        const saldo = parseFloat(c.saldo);
+        
+        let claseColor = '';
+        let claseTexto = '';
+        let destino = null;
+        let valorMostrar = Math.abs(saldo);
+
+        // --- LÓGICA DE CLASIFICACIÓN ---
+        if (Math.abs(saldo) < 1) {
+            // SALDO 0: Se va al modal de PAZ Y SALVO
+            destino = gridPazSalvo;
+            claseColor = ''; // Sin color destacado
+            claseTexto = 'txt-gris'; // Texto normal/gris
+            valorMostrar = 0;
+            contadorPazSalvo++;
+        } else if (saldo > 0) {
+            // SALDO > 0: TÚ tienes el dinero -> "LES DEBO"
+            destino = gridLesDebo;
+            claseColor = 'rojo';       
+            claseTexto = 'txt-rojo';   
+        } else {
+            // SALDO < 0: ELLOS tienen tu dinero -> "ME DEBEN"
+            destino = gridMeDeben;
+            claseColor = 'verde';      
+            claseTexto = 'txt-verde';  
+        }
+
+        const row = document.createElement('div');
+        row.className = `cliente-fila ${claseColor}`;
+        
+        row.onclick = (e) => {
+            if(e.target.closest('button')) return;
+            abrirModalCliente(c);
+        };
+
+        row.innerHTML = `
+            <div class="fila-info">
+                <span class="fila-nombre" title="${c.cliente_nombre}">${c.cliente_nombre}</span>
+                <span class="fila-doc"><i class="fa-solid fa-id-card"></i> ${c.cliente_documento || '---'}</span>
+            </div>
+
+            <div class="fila-saldo ${claseTexto}">
+                ${fmt(valorMostrar)}
+            </div>
+
+            <div class="fila-actions">
+                <button class="btn-mini btn-hist" title="Ver Historial" 
+                    onclick="verHistorial('${c.cliente_documento||''}', '${c.cliente_nombre}')">
+                    <i class="fa-solid fa-list-ul"></i>
+                </button>
+                <button class="btn-mini btn-del" title="Eliminar definitivamente todo el historial" 
+                    onclick="eliminarClienteTotal('${c.cliente_documento||''}', '${c.cliente_nombre}')">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        `;
+
+        if(destino) destino.appendChild(row);
+    });
+
+    // Actualizamos el contador en el botón
+    if(badgePazSalvo) badgePazSalvo.textContent = contadorPazSalvo;
+
+    // Si no hay nadie en $0, mostramos un mensaje vacío en el modal
+    if (contadorPazSalvo === 0) {
+        gridPazSalvo.innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-style:italic;">No hay clientes con saldo $0 en este momento.</div>';
+    }
+}
+
+// --- FUNCIONES PARA ABRIR Y CERRAR EL MODAL DE PAZ Y SALVO ---
+function abrirModalPazSalvo() {
+    document.getElementById('modalPazSalvo').style.display = 'flex';
+}
+
+function cerrarModalPazSalvo() {
+    document.getElementById('modalPazSalvo').style.display = 'none';
 }
 
 function cerrarModalERP() {
