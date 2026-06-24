@@ -174,8 +174,11 @@ async function eliminarCompensacion(id) {
     if(!confirm("⚠️ ¿Estás seguro de ELIMINAR esta compensación?\n\nEsta acción afectará el saldo del banco.")) return;
     
     try {
+        const usuario = localStorage.getItem('usuario_nombre');
         const res = await fetch(`/api/transacciones/${id}`, { 
-            method: 'DELETE' 
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_nombre: usuario })
         });
         
         const data = await res.json();
@@ -202,12 +205,14 @@ async function editarCompensacion(id, descActual, montoActual) {
 
     // 2. Enviar actualización al servidor
     try {
+        const usuario = localStorage.getItem('usuario_nombre');
         const res = await fetch(`/api/transacciones/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 monto: parseFloat(nuevoMonto), 
-                descripcion: nuevaDesc 
+                descripcion: nuevaDesc,
+                usuario_nombre: usuario
             })
         });
 

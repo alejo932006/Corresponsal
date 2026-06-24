@@ -716,11 +716,21 @@ async function cargarBaseCaja() {
 }
 
 
-// Funciones de Edición/Eliminación (Se mantienen igual)
+// Funciones de Edición/Eliminación
 async function eliminarTx(id) {
-    if(!confirm("¿Estás seguro de ELIMINAR esta transacción?")) return;
+    const autorizado = await solicitarAutorizacionAdmin(
+        'Un administrador debe ingresar su contraseña para eliminar esta transacción.'
+    );
+    if (!autorizado) return;
+
+    if (!confirm("¿Estás seguro de ELIMINAR esta transacción?")) return;
     try {
-        const res = await fetch(`/api/transacciones/${id}`, { method: 'DELETE' });
+        const usuario = localStorage.getItem('usuario_nombre');
+        const res = await fetch(`/api/transacciones/${id}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_nombre: usuario })
+        });
         const data = await res.json();
         if (data.success) {
             alert("🗑️ Eliminada");
@@ -737,10 +747,11 @@ async function editarTx(id, descActual, montoActual) {
     if (nuevaDesc === null) return;
 
     try {
+        const usuario = localStorage.getItem('usuario_nombre');
         const res = await fetch(`/api/transacciones/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ monto: parseFloat(nuevoMonto), descripcion: nuevaDesc })
+            body: JSON.stringify({ monto: parseFloat(nuevoMonto), descripcion: nuevaDesc, usuario_nombre: usuario })
         });
         if ((await res.json()).success) {
             alert("✅ Actualizada");
@@ -1277,12 +1288,17 @@ function filtrarHistorial() {
 }
 
 // --- FUNCION PARA PEDIR AUTORIZACIÓN (Promesa) ---
-function solicitarAutorizacionAdmin() {
+function solicitarAutorizacionAdmin(mensaje) {
     return new Promise((resolve) => {
         const modal = document.getElementById('modalAuth');
         const input = document.getElementById('inputAdminPass');
         const btnConfirm = document.getElementById('btnConfirmAuth');
         const btnCancel = document.getElementById('btnCancelAuth');
+        const textoMensaje = modal ? modal.querySelector('p') : null;
+
+        if (textoMensaje) {
+            textoMensaje.textContent = mensaje || 'Un administrador debe ingresar su contraseña para continuar.';
+        }
 
         // Mostrar modal y limpiar
         modal.style.display = 'flex';

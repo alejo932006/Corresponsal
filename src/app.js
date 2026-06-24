@@ -3,6 +3,11 @@ const express = require('express');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const pool = require('./db'); // Importamos la conexión
+const {
+    NIVEL, TIPO, UMBRAL_DIFERENCIA_CIERRE,
+    initAuditoria, registrarEvento, obtenerTransaccionCompleta,
+    auditarNuevaTransaccion, getClientIp
+} = require('./auditoria');
 const app = express();
 const fs = require('fs');
 const { exec } = require('child_process');
@@ -21,6 +26,13 @@ app.post('/api/login', async (req, res) => {
         const resultado = await pool.query('SELECT * FROM usuarios WHERE nombre = $1', [usuario]);
         
         if (resultado.rows.length === 0) {
+            await registrarEvento({
+                tipo_evento: TIPO.LOGIN_FALLIDO,
+                nivel: NIVEL.ALERTA,
+                usuario,
+                descripcion: 'Usuario no encontrado',
+                ip: getClientIp(req)
+            });
             return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
         }
 
@@ -28,6 +40,13 @@ app.post('/api/login', async (req, res) => {
         const passwordCorrecta = await bcrypt.compare(password, usuarioEncontrado.password_hash);
 
         if (passwordCorrecta) {
+            await registrarEvento({
+                tipo_evento: TIPO.LOGIN_OK,
+                nivel: NIVEL.INFO,
+                usuario: usuarioEncontrado.nombre,
+                descripcion: `Inicio de sesión exitoso (${usuarioEncontrado.rol})`,
+                ip: getClientIp(req)
+            });
             res.json({ 
                 success: true, 
                 message: 'Bienvenido', 
@@ -35,6 +54,13 @@ app.post('/api/login', async (req, res) => {
                 rol: usuarioEncontrado.rol 
             });
         } else {
+            await registrarEvento({
+                tipo_evento: TIPO.LOGIN_FALLIDO,
+                nivel: NIVEL.ALERTA,
+                usuario,
+                descripcion: 'Contraseña incorrecta',
+                ip: getClientIp(req)
+            });
             res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
         }
 
@@ -271,6 +297,15 @@ app.post('/api/apertura-caja', async (req, res) => {
             VALUES ($1, CURRENT_DATE, $2, 'ABIERTA');
         `;
         await pool.query(query, [userId, monto]);
+
+        await registrarEvento({
+            tipo_evento: TIPO.APERTURA_CAJA,
+            nivel: NIVEL.INFO,
+            usuario: usuario_nombre,
+            descripcion: `Apertura de caja con base inicial`,
+            monto: parseFloat(monto),
+            ip: getClientIp(req)
+        });
         
         res.json({ success: true, message: 'Caja abierta exitosamente' });
 
@@ -360,6 +395,15 @@ app.post('/api/reabrir-caja', async (req, res) => {
         `;
         
         await pool.query(queryUpdate, [caja.id]);
+
+        await registrarEvento({
+            tipo_evento: TIPO.REAPERTURA_CAJA,
+            nivel: NIVEL.CRITICO,
+            usuario: req.body.usuario_nombre || 'desconocido',
+            descripcion: `Caja reabierta (ID turno: ${caja.id})`,
+            ip: getClientIp(req)
+        });
+
         res.json({ success: true, message: 'Caja reabierta correctamente' });
 
     } catch (error) {
@@ -461,6 +505,17 @@ app.post('/api/cerrar-caja', async (req, res) => {
 
         await pool.query(queryUpdate, [saldoSistema, monto_fisico, diferencia, caja.id]);
 
+        const nivelCierre = Math.abs(diferencia) >= UMBRAL_DIFERENCIA_CIERRE ? NIVEL.CRITICO : NIVEL.INFO;
+        await registrarEvento({
+            tipo_evento: TIPO.CIERRE_CAJA,
+            nivel: nivelCierre,
+            usuario: usuario_nombre,
+            descripcion: `Cierre de caja. Sistema: $${saldoSistema.toLocaleString('es-CO')} | Físico: $${parseFloat(monto_fisico).toLocaleString('es-CO')} | Diferencia: $${diferencia.toLocaleString('es-CO')}`,
+            monto: diferencia,
+            datos_despues: { saldoSistema, monto_fisico, diferencia },
+            ip: getClientIp(req)
+        });
+
         res.json({ success: true, saldoSistema, diferencia });
 
     } catch (error) {
@@ -501,9 +556,12 @@ app.post('/api/transacciones', async (req, res) => {
             VALUES ($1, $2, $3, $4, $5)
             RETURNING id;
         `;
-        await pool.query(query, [tipo_id, banco_id, usuarioId, descripcion, monto]);
+        const insertResult = await pool.query(query, [tipo_id, banco_id, usuarioId, descripcion, monto]);
+        const transaccionId = insertResult.rows[0].id;
 
-        res.json({ success: true, message: 'Transacción guardada con éxito' });
+        await auditarNuevaTransaccion(req, { tipo_id, banco_id, descripcion, monto, usuario_nombre }, transaccionId);
+
+        res.json({ success: true, message: 'Transacción guardada con éxito', id: transaccionId });
 
     } catch (error) {
         console.error('Error guardando:', error);
@@ -606,6 +664,15 @@ app.post('/api/admin/reset-db', async (req, res) => {
 
             try {
                 await pool.query('TRUNCATE TABLE transacciones, aperturas_caja RESTART IDENTITY CASCADE');
+
+                await registrarEvento({
+                    tipo_evento: TIPO.RESET_DB,
+                    nivel: NIVEL.CRITICO,
+                    usuario: req.body.usuario_nombre || 'admin',
+                    descripcion: 'RESET TOTAL de transacciones y aperturas de caja',
+                    ip: getClientIp(req)
+                });
+
                 res.json({ 
                     success: true, 
                     message: 'Sistema reseteado exitosamente. Se creó un respaldo.' 
@@ -623,8 +690,28 @@ app.post('/api/admin/reset-db', async (req, res) => {
 // --- BORRAR Y EDITAR (Restringido al día para seguridad, o se puede abrir también) ---
 app.delete('/api/transacciones/:id', async (req, res) => {
     const { id } = req.params;
+    const { usuario_nombre } = req.body || {};
     try {
+        const txAntes = await obtenerTransaccionCompleta(id);
+        if (!txAntes) {
+            return res.status(404).json({ success: false, message: 'Transacción no encontrada' });
+        }
+
         await pool.query('DELETE FROM transacciones WHERE id = $1', [id]);
+
+        await registrarEvento({
+            tipo_evento: TIPO.TRANSACCION_ELIMINADA,
+            nivel: NIVEL.CRITICO,
+            usuario: usuario_nombre || txAntes.usuario,
+            descripcion: `Eliminada: ${txAntes.tipo_nombre} - ${txAntes.descripcion || 'Sin descripción'}`,
+            monto: parseFloat(txAntes.monto),
+            transaccion_id: parseInt(id),
+            banco_id: txAntes.banco_id,
+            banco_nombre: txAntes.banco_nombre,
+            datos_antes: txAntes,
+            ip: getClientIp(req)
+        });
+
         res.json({ success: true, message: 'Eliminada correctamente' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Error al eliminar' });
@@ -633,12 +720,34 @@ app.delete('/api/transacciones/:id', async (req, res) => {
 
 app.put('/api/transacciones/:id', async (req, res) => {
     const { id } = req.params;
-    const { monto, descripcion } = req.body;
+    const { monto, descripcion, usuario_nombre } = req.body;
     try {
+        const txAntes = await obtenerTransaccionCompleta(id);
+        if (!txAntes) {
+            return res.status(404).json({ success: false, message: 'Transacción no encontrada' });
+        }
+
         await pool.query(
             'UPDATE transacciones SET monto = $1, descripcion = $2 WHERE id = $3',
             [monto, descripcion, id]
         );
+
+        const txDespues = await obtenerTransaccionCompleta(id);
+
+        await registrarEvento({
+            tipo_evento: TIPO.TRANSACCION_EDITADA,
+            nivel: NIVEL.ALERTA,
+            usuario: usuario_nombre || txAntes.usuario,
+            descripcion: `Editada: ${txAntes.tipo_nombre} | Monto: $${txAntes.monto} → $${monto}`,
+            monto: parseFloat(monto),
+            transaccion_id: parseInt(id),
+            banco_id: txAntes.banco_id,
+            banco_nombre: txAntes.banco_nombre,
+            datos_antes: txAntes,
+            datos_despues: txDespues,
+            ip: getClientIp(req)
+        });
+
         res.json({ success: true, message: 'Actualizada correctamente' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Error al actualizar' });
@@ -752,6 +861,15 @@ app.post('/api/usuarios', async (req, res) => {
     try {
         const hash = await bcrypt.hash(password, 10);
         await pool.query('INSERT INTO usuarios (nombre, password_hash, rol) VALUES ($1, $2, $3)', [nombre, hash, rol]);
+
+        await registrarEvento({
+            tipo_evento: TIPO.USUARIO_CREADO,
+            nivel: NIVEL.ALERTA,
+            usuario: req.body.creado_por || 'admin',
+            descripcion: `Nuevo usuario: ${nombre} (${rol})`,
+            ip: getClientIp(req)
+        });
+
         res.json({ success: true, message: 'Usuario creado' });
     } catch (error) {
         res.status(500).json({ success: false });
@@ -817,6 +935,14 @@ app.post('/api/admin/verificar-password', async (req, res) => {
 
 // --- RUTA: ABRIR CAJÓN (CON AUTENTICACIÓN) ---
 app.post('/api/admin/abrir-cajon', (req, res) => {
+    registrarEvento({
+        tipo_evento: TIPO.CAJON_ABIERTO,
+        nivel: NIVEL.INFO,
+        usuario: req.body?.usuario_nombre || 'desconocido',
+        descripcion: 'Apertura del cajón monedero',
+        ip: getClientIp(req)
+    });
+
     const { exec } = require('child_process');
     const path = require('path');
     const fs = require('fs');
@@ -880,7 +1006,21 @@ app.post('/api/admin/abrir-cajon', (req, res) => {
 app.delete('/api/usuarios/:id', async (req, res) => {
     const { id } = req.params;
     try {
+        const userRes = await pool.query('SELECT nombre, rol FROM usuarios WHERE id = $1', [id]);
+        const usuarioEliminado = userRes.rows[0];
+
         await pool.query('DELETE FROM usuarios WHERE id = $1', [id]);
+
+        if (usuarioEliminado) {
+            await registrarEvento({
+                tipo_evento: TIPO.USUARIO_ELIMINADO,
+                nivel: NIVEL.CRITICO,
+                usuario: req.body?.eliminado_por || 'admin',
+                descripcion: `Usuario eliminado: ${usuarioEliminado.nombre} (${usuarioEliminado.rol})`,
+                ip: getClientIp(req)
+            });
+        }
+
         res.json({ success: true, message: 'Usuario eliminado correctamente' });
     } catch (error) {
         console.error(error);
@@ -899,6 +1039,16 @@ app.put('/api/usuarios/:id/clave', async (req, res) => {
         const hash = await bcrypt.hash(password, salt);
         
         await pool.query('UPDATE usuarios SET password_hash = $1 WHERE id = $2', [hash, id]);
+
+        const userRes = await pool.query('SELECT nombre FROM usuarios WHERE id = $1', [id]);
+        await registrarEvento({
+            tipo_evento: TIPO.CLAVE_CAMBIADA,
+            nivel: NIVEL.ALERTA,
+            usuario: req.body?.cambiado_por || userRes.rows[0]?.nombre || 'desconocido',
+            descripcion: `Contraseña cambiada para usuario ID ${id} (${userRes.rows[0]?.nombre || '?'})`,
+            ip: getClientIp(req)
+        });
+
         res.json({ success: true, message: 'Contraseña actualizada' });
     } catch (error) {
         console.error(error);
@@ -907,6 +1057,14 @@ app.put('/api/usuarios/:id/clave', async (req, res) => {
 });
 
 const PORT = 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
-});
+
+initAuditoria()
+    .then(() => {
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`Servidor corriendo en http://localhost:${PORT}`);
+        });
+    })
+    .catch((err) => {
+        console.error('Error inicializando auditoría:', err);
+        process.exit(1);
+    });
